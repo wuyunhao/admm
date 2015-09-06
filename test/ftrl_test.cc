@@ -25,7 +25,7 @@ TEST_F(FtrlTest, Predict){
    typedef std::size_t IndexType;
    typedef ::dmlc::Row<IndexType> Row;
    
-   FTRL_Solver fs(0.1f, 0.2f, 1.0f, 1.0f, 1u, 5u);
+   FtrlSolver fs(0.1f, 0.2f, 1.0f, 1.0f, 1u, 5u);
    real_t val[] = {1.0, 2.0, 1.4};
    IndexType index[] = {1, 3, 4};
    Row Inst;
@@ -38,7 +38,7 @@ TEST_F(FtrlTest, Predict){
 
    std::vector<real_t> x(5, 2.0);
    fs.Assign(x);
-   std::vector<real_t> repeat = fs.GetWeight();
+   std::vector<real_t> repeat = fs.weight();
    EXPECT_EQ(repeat.size(),x.size());	
    for(auto i = 0u; i < x.size(); i++){
 		EXPECT_DOUBLE_EQ(repeat[i], x[i]);
@@ -48,6 +48,5 @@ TEST_F(FtrlTest, Predict){
 
    EXPECT_DOUBLE_EQ(0.5, prediction2);
 }
-
 
 }

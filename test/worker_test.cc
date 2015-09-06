@@ -30,34 +30,34 @@ TEST_F(WorkerTest, update){
 
    AdmmConfig admm_params(1,1,1,5); 
 
-   Worker Worker_processor(admm_params);
-   Master Master_processor;
+   Worker worker_processor(admm_params);
+   Master master_processor;
 
    //update of the local base and bias weights
-   Worker_processor.Bias_update(sample_set, admm_params);
-   Worker_processor.Base_update(sample_set, admm_params);
+   worker_processor.BiasUpdate(sample_set, admm_params);
+   worker_processor.BaseUpdate(sample_set, admm_params);
 
    //test the local base weights
-   std::vector<std::pair<real_t,real_t>> result = Worker_processor.GetWeights();
+   std::vector<real_t> result = worker_processor.GetWeights(admm_params);
    //TODO
    for(auto i = 0u; i < admm_params.global_weights.size(); ++i)
-        EXPECT_DOUBLE_EQ(0,result[i].first);
+        EXPECT_DOUBLE_EQ(0,result[i]);
 
    //update of the global weights
-   std::vector<std::vector<std::pair<real_t,real_t>>> RESULT;
+   std::vector<std::vector<real_t>> RESULT;
    RESULT.push_back(result);
-   Master_processor.global_update(RESULT, admm_params);
+   master_processor.global_update(RESULT, admm_params);
    //test the global weights
    //TODO
    for(auto i = 0u; i < admm_params.global_weights.size(); ++i)
         EXPECT_DOUBLE_EQ(0, admm_params.global_weights[i]);
 
    //update of the langranges
-   Worker_processor.Langrange_update(sample_set, admm_params);
+   worker_processor.LangrangeUpdate(sample_set, admm_params);
    //test the langranges
-   result = Worker_processor.GetWeights();
+   result = worker_processor.GetWeights(admm_params);
    //TODO
    for(auto i = 0u; i < admm_params.global_weights.size(); ++i)
-   EXPECT_DOUBLE_EQ(0,result[i].second);
+   EXPECT_DOUBLE_EQ(0,result[i]);
 }
 }

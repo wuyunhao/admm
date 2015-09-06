@@ -14,7 +14,7 @@ namespace ftrl{
  *  L_2 regularization
  */
 
-class FTRL_Solver {
+class FtrlSolver {
  public:
   typedef float real_t;
   typedef std::size_t IndexType;
@@ -23,14 +23,14 @@ class FTRL_Solver {
   /*!
    * \brief Initiate with l_1, l_2, num_iter, alpha, beta
    */
-  FTRL_Solver(::admm::FtrlConfig & params);
-  FTRL_Solver(real_t lambda_1,
-			  real_t lambda_2,
-			  real_t alpha_init,
-			  real_t  beta_init,
-			  std::size_t niter_init,
-			  std::size_t dim_init);
-  ~FTRL_Solver();
+  FtrlSolver(::admm::FtrlConfig & params);
+  FtrlSolver(real_t lambda_1,
+			 real_t lambda_2,
+			 real_t alpha_init,
+			 real_t  beta_init,
+			 std::size_t niter_init,
+			 std::size_t dim_init);
+  ~FtrlSolver();
   
   /*!
    * \brief Compute the value returned by logistic function. 
@@ -59,54 +59,54 @@ class FTRL_Solver {
   /*!
    * \brief get the weight solution
    */
-  const std::vector<real_t>& GetWeight();
+  const std::vector<real_t>& weight();
 
   /*!
    * \brief process the update with specified passes
    *
    * \param the samples set corresponding the model
    */
-  void Run(SampleSet& sample_set,std::vector<real_t>& offset);
+  void Run(SampleSet& sample_set, std::vector<real_t>& offset);
 
  protected:
 
   /*!
    * \brief the weights 
    */
-  std::vector<real_t> weight;
+  std::vector<real_t> weight_;
   /*!
    * \brief the median weights
    */
-  std::vector<real_t> mid_weight;
+  std::vector<real_t> mid_weight_;
 
   /*!
    * \brief the squared sum of past gradient
    */
-  std::vector<real_t> squared_sum;
+  std::vector<real_t> squared_sum_;
   /*!
    * \brief l_1 regularized coefficient
    */
-  real_t l_1;
+  real_t l_1_;
   /*!
    * \brief l_2 regularized coefficient
    */
-  real_t l_2;
+  real_t l_2_;
   /*!
    * \brief alpha for Per-coordinate learning rate
    */
-  real_t alpha;
+  real_t alpha_;
   /*!
    * \brief beta for Per-coordinate learning rate
    */
-  real_t beta;
+  real_t beta_;
   /*!
    * \brief the total num of iterations
    */
-  std::size_t niter;
+  std::size_t niter_;
   /*!
    * \brief the dimension of the weights
    */
-  std::size_t dim;
+  std::size_t dim_;
 
 
 };
