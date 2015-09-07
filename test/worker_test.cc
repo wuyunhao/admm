@@ -46,7 +46,7 @@ TEST_F(WorkerTest, update){
    //update of the global weights
    std::vector<std::vector<real_t>> RESULT;
    RESULT.push_back(result);
-   master_processor.global_update(RESULT, admm_params);
+   master_processor.GlobalUpdate(RESULT, admm_params);
    //test the global weights
    //TODO
    for(auto i = 0u; i < admm_params.global_weights.size(); ++i)

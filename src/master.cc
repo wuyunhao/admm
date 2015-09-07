@@ -2,7 +2,7 @@
 
 namespace admm {
 
-bool Master::global_update(const std::vector<Master::Vec>& workers, AdmmConfig& admm_params) {
+bool Master::GlobalUpdate(const std::vector<Master::Vec>& workers, AdmmConfig& admm_params) {
     std::size_t num_worker = workers.size();
     if (num_worker <= 0) {
         LOG(ERROR) << "None data is collected.";

@@ -14,6 +14,6 @@ class Master {
   typedef float real_t;
   typedef std::vector<real_t> Vec;
 
-  bool global_update(const std::vector<Vec>& workers, AdmmConfig& admm_params);
+  bool GlobalUpdate(const std::vector<Vec>& workers, AdmmConfig& admm_params);
 };
 } // namespace admm
