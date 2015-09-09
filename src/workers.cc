@@ -9,16 +9,13 @@ namespace admm{
 Worker::Worker() {
 }
 
-Worker::Worker(const AdmmConfig& admm_params) {
-    base_vec_.resize(admm_params.global_weights.size());
-    bias_vec_.resize(admm_params.global_weights.size());
-    langr_vec_.resize(admm_params.global_weights.size());
-    
-    for(auto i = 0u; i < base_vec_.size(); ++i){
-        base_vec_[i] = 0;
-        bias_vec_[i] = 0;
-        langr_vec_[i] = 0;
-    }
+void Worker::InitWorker(std::size_t fdim) {
+    base_vec_.resize(fdim);
+    bias_vec_.resize(fdim);
+    langr_vec_.resize(fdim);
+    std::fill(base_vec_.begin(), base_vec_.end(), 0.0f);    
+    std::fill(bias_vec_.begin(), bias_vec_.end(), 0.0f);    
+    std::fill(langr_vec_.begin(), langr_vec_.end(), 0.0f);    
 }
 
 Worker::~Worker() {
@@ -60,22 +57,15 @@ void Worker::BiasUpdate(SampleSet& sample_set, const AdmmConfig& admm_params) {
 }
 
 void Worker::LangrangeUpdate(const SampleSet& sample_set, const AdmmConfig& admm_params) {
-    if (langr_vec_.size() != admm_params.global_weights.size()) {
-        LOG(ERROR) << id_ <<"th worker: " << "langrange coefs are different with global weights in length";
-        return;
-    }
     for (auto i = 0u; i < langr_vec_.size(); ++i) {
         langr_vec_[i] += admm_params.step_size*(base_vec_[i] - admm_params.global_weights[i]);
     }
 }
 
-std::vector<Worker::real_t> Worker::GetWeights(AdmmConfig& admm_params) const{
-    std::vector<real_t> result;
-    result.resize(base_vec_.size());
-    for (auto i = 0u; i < base_vec_.size(); ++i) {
-        result[i] = base_vec_[i] + langr_vec_[i]/admm_params.step_size;
+void Worker::GetWeights(AdmmConfig& admm_params, std::vector<Worker::real_t>& ptr) const {
+    for (auto i = 0u; i < ptr.size(); ++i) {
+        ptr[i] = base_vec_[i] + langr_vec_[i]/admm_params.step_size;
     }
-    return result;
 }
 
 } // namespace admm

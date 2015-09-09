@@ -11,15 +11,15 @@ namespace admm {
  * 
  * \param w_vec the weight vector for the task
  * \param v_vec the offset vector for the task
- * \param alpha_vec the lagrange efficient vector for the task
+ * \param alpha_vec the langrange efficient vector for the task
  */
 class Worker {
  public:
   typedef float real_t;
   
   Worker();
-  Worker(const AdmmConfig& admm_params);
   virtual ~Worker();
+  void InitWorker(std::size_t fdim);
   /*!
    * \brief update the base weights of the single model.
    * \param batches the traning instances specified by the task 
@@ -37,7 +37,7 @@ class Worker {
   /*!
    * \brief return the final base weights and langranges of the single model
    */
-  std::vector<real_t> GetWeights(AdmmConfig& admm_params) const;
+  void GetWeights(AdmmConfig& admm_params, std::vector<real_t>& ptr) const;
  private:
   /*!
    * \brief worker's ID

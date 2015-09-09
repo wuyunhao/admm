@@ -12,8 +12,7 @@ namespace admm{
 class Master {
  public:
   typedef float real_t;
-  typedef std::vector<real_t> Vec;
 
-  bool GlobalUpdate(const std::vector<Vec>& workers, AdmmConfig& admm_params);
+  bool GlobalUpdate(const std::vector<real_t>& workers, AdmmConfig& admm_params, int num_worker);
 };
 } // namespace admm
