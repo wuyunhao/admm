@@ -34,8 +34,8 @@ clean:
 lint:
 	python cpplint.py src/*.h src/*.cc src/*.cpp
 
-program: $(LIBOBJECTS) src/admm_main.cpp
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBOBJECTS) src/admm_main.cpp -o admm $(LIBS)
+program: $(LIBOBJECTS) src/admm_allreduce.cpp
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBOBJECTS) src/admm_allreduce.cpp -o admm $(LIBS)
 
 all_test: $(LIBOBJECTS) $(TESTOBJECTS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBOBJECTS) $(TESTOBJECTS) -o  all_test -g test/gtest-all.cc test/gtest_main.cc $(LIBS)

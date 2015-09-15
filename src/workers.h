@@ -38,7 +38,7 @@ class Worker {
    * \brief return the final base weights and langranges of the single model
    */
   void GetWeights(AdmmConfig& admm_params, std::vector<real_t>& ptr) const;
- private:
+ //private:
   /*!
    * \brief worker's ID
    */

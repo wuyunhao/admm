@@ -66,7 +66,7 @@ FtrlSolver::real_t FtrlSolver::Predict(FtrlSolver::Row& x) {
 
 FtrlSolver::real_t FtrlSolver::Predict(FtrlSolver::Row& x, std::vector<FtrlSolver::real_t>& offset) {
     for(auto i = 0u; i < x.length; ++i) {
-        LOG(INFO) << "x.index[" << i << "] = " << x.index[i] << "\n";
+        //LOG(INFO) << "x.index[" << i << "] = " << x.index[i] << "\n";
 		real_t sign = mid_weight_[x.index[i]] < 0? -1:1;
 		weight_[x.index[i]] = abs(mid_weight_[x.index[i]]) <= l_1_? 0:(sign*l_1_ - mid_weight_[x.index[i]])/((beta_ + sqrt(squared_sum_[x.index[i]]))/alpha_ + l_2_);
     }
