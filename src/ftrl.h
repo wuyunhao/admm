@@ -23,15 +23,16 @@ class FtrlSolver {
   /*!
    * \brief Initiate with l_1, l_2, num_iter, alpha, beta
    */
-  FtrlSolver(::admm::FtrlConfig & params);
   FtrlSolver(real_t lambda_1,
 			 real_t lambda_2,
 			 real_t alpha_init,
 			 real_t  beta_init,
 			 std::size_t niter_init,
 			 std::size_t dim_init);
+  FtrlSolver();
   ~FtrlSolver();
   
+  void Init(::admm::FtrlConfig &params);
   /*!
    * \brief Compute the value returned by logistic function. 
    *
@@ -59,7 +60,7 @@ class FtrlSolver {
   /*!
    * \brief get the weight solution
    */
-  const std::vector<real_t>& weight();
+  std::vector<real_t> weight() const;
 
   /*!
    * \brief process the update with specified passes

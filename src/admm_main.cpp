@@ -10,7 +10,7 @@ int main(int argc, char* argv[]) {
   InitLogging(argv[0]);
   Init(argc, argv);
 
-  std::unique_ptr<Stream> stream(Stream::Create("hdfs://ns1/user/yunhao1/admm/ss.txt", "w"));
+  std::unique_ptr<Stream> stream(Stream::Create("ss.txt", "w"));
   CHECK(stream != NULL);
   if (GetRank() == 0) {
     stream->Write("It's ok on creating.");

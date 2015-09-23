@@ -26,7 +26,8 @@ void Worker::BaseUpdate(SampleSet& sample_set, const AdmmConfig& admm_params) {
     ftrl_params.l_2 = admm_params.step_size;
     ftrl_params.l_1 = 0;
 
-    ::ftrl::FtrlSolver ftrl_processor(ftrl_params);
+    ::ftrl::FtrlSolver ftrl_processor;
+    ftrl_processor.Init(ftrl_params);
 
     std::vector<::ftrl::FtrlSolver::real_t> offset(ftrl_params.dim, 0);
     //set the offset vector
@@ -47,7 +48,8 @@ void Worker::BiasUpdate(SampleSet& sample_set, const AdmmConfig& admm_params) {
     ftrl_params.l_2 = 0;
     ftrl_params.l_1 = admm_params.bias_var;
 
-    ::ftrl::FtrlSolver ftrl_processor(ftrl_params);
+    ::ftrl::FtrlSolver ftrl_processor;
+    ftrl_processor.Init(ftrl_params);
 
     //set the offset vector
     std::vector<::ftrl::FtrlSolver::real_t> offset = base_vec_;

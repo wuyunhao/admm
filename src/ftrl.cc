@@ -27,7 +27,13 @@ FtrlSolver::FtrlSolver(FtrlSolver::real_t lambda_1,
 	}
 } 
 
-FtrlSolver::FtrlSolver(::admm::FtrlConfig& params) {
+FtrlSolver::FtrlSolver() {
+}
+
+FtrlSolver::~FtrlSolver() {
+}
+
+void FtrlSolver::Init(::admm::FtrlConfig& params) {
     l_1_ = params.l_1;
     l_2_ = params.l_2;
     alpha_ = params.alpha;
@@ -44,9 +50,6 @@ FtrlSolver::FtrlSolver(::admm::FtrlConfig& params) {
 		mid_weight_[i] = 0;
 		squared_sum_[i] = 0;
 	}
-}
-
-FtrlSolver::~FtrlSolver() {
 }
 
 FtrlSolver::real_t FtrlSolver::Predict(FtrlSolver::Row& x) {
@@ -91,7 +94,7 @@ void FtrlSolver::Update(const FtrlSolver::Row& x, FtrlSolver::real_t predict) {
 	}
 }
 
-const std::vector<FtrlSolver::real_t>& FtrlSolver::weight() {
+std::vector<FtrlSolver::real_t> FtrlSolver::weight() const {
 	return weight_;
 }
 

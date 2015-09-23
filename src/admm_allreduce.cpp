@@ -42,6 +42,26 @@ class LocalModel : public dmlc::Serializable {
      }
 
    }
+   void SaveAuc(dmlc::Stream *fo, ::admm::SampleSet &sample_set) {
+     dmlc::ostream os(fo);
+     sample_set.Rewind();
+     while(sample_set.Next()) {
+       dmlc::Row<std::size_t> x = sample_set.GetData();
+       os << x.label << ' ';
+     }
+     os << '\n';
+
+     std::vector<float> final_weights(worker_processor_.base_vec_.size());
+     for (size_t i = 0; i < final_weights.size(); ++i) {
+        final_weights[i] = worker_processor_.base_vec_[i] + worker_processor_.bias_vec_[i];
+     }
+
+     sample_set.Rewind();
+     while(sample_set.Next()) {
+       dmlc::Row<std::size_t> x = sample_set.GetData();
+       os << Predict(x, final_weights) << ' ';
+     }
+   }
    void InitModel(std::size_t fdim) {
      worker_processor_.InitWorker(fdim);
    }
@@ -63,25 +83,11 @@ class GlobalModel : public dmlc::Serializable {
        os << admm_params_.global_weights[i] << ' ';
      }
    }
-   void SaveAuc(dmlc::Stream *fo, ::admm::SampleSet &sample_set ) {
-     dmlc::ostream os(fo);
-     sample_set.Rewind();
-     while(sample_set.Next()) {
-       dmlc::Row<std::size_t> x = sample_set.GetData();
-       os << x.label << ' ';
-     }
-     os << '\n';
-     sample_set.Rewind();
-     while(sample_set.Next()) {
-       dmlc::Row<std::size_t> x = sample_set.GetData();
-       os << Predict(x, admm_params_.global_weights) << ' ';
-     }
-   }
-   void InitModel(float step_size,
-                  float global_var,
+   void InitModel(float global_var,
                   float bias_var,
+                  float step_size,
                   std::size_t dim) {
-     admm_params_.Init(step_size, global_var, bias_var, dim);
+     admm_params_.Init(global_var, bias_var, step_size, dim);
    }
 };
 
@@ -92,16 +98,16 @@ int main(int argc, char* argv[]) {
   LocalModel local_model;
   GlobalModel global_model;
   ::admm::SampleSet sample_set;
-  CHECK(sample_set.Initialize(argv[1], rabit::GetRank(), rabit::GetWorldSize()));
+  CHECK(sample_set.Initialize(argv[5], rabit::GetRank(), rabit::GetWorldSize()));
 
   int max_iter = 3;
   int iter = rabit::LoadCheckPoint(&global_model);
   if (iter == 0) {
-    global_model.InitModel(atof(argv[2]),
+    global_model.InitModel(atof(argv[1]),
+                           atof(argv[2]),
                            atof(argv[3]),
-                           atof(argv[4]),
-                           atoi(argv[5]));
-    local_model.InitModel(atoi(argv[5]));
+                           atoi(argv[4]));
+    local_model.InitModel(atoi(argv[4]));
   }
 
   rabit::TrackerPrintf("Initialization finished\n");
@@ -141,24 +147,27 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  std::string path = "hdfs://ns1/user/yunhao1/admm/";
+  std::string path = "data/"; // "hdfs://ns1/user/yunhao1/admm/";
 
-  std::string local_file = path + "processor_" + std::to_string(rabit::GetRank());
+  std::string local_file = path + "local_params_" + std::to_string(rabit::GetRank());
   auto *stream = dmlc::Stream::Create(&local_file[0], "w");
   local_model.Save(stream);
   delete stream;
+
   if (rabit::GetRank() == 0) {
-    std::string global_file = path + "allprocesses.txt";
+    std::string global_file = path + "global_params";
     auto *streama(dmlc::Stream::Create(&global_file[0], "w"));
     global_model.Save(streama);
     delete streama;
-    
-    std::string auc = path + "auc.txt";
+  }
+
+  if (rabit::GetRank() == 0) {
+    std::string auc = path + "admm_auc"; 
     auto *streamb(dmlc::Stream::Create(&auc[0], "w"));
     //get the test set
     ::admm::SampleSet test_set;
     CHECK(test_set.Initialize(argv[6], rabit::GetRank(),1)); 
-    global_model.SaveAuc(streamb, test_set);
+    local_model.SaveAuc(streamb, test_set);
     delete streamb;
   }
 
