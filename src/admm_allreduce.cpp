@@ -98,7 +98,9 @@ int main(int argc, char* argv[]) {
   LocalModel local_model;
   GlobalModel global_model;
   ::admm::SampleSet sample_set;
-  CHECK(sample_set.Initialize(argv[5], rabit::GetRank(), rabit::GetWorldSize()));
+  std::string train_name = "data/" + std::to_string(rabit::GetRank()) + ".libsvm.train";
+  std::string test_name = "data/" + std::to_string(rabit::GetRank()) + ".libsvm.test";
+  CHECK(sample_set.Initialize(train_name, 0, 1));
 
   int max_iter = 3;
   int iter = rabit::LoadCheckPoint(&global_model);
@@ -149,8 +151,8 @@ int main(int argc, char* argv[]) {
 
   std::string path = "data/"; // "hdfs://ns1/user/yunhao1/admm/";
 
-  std::string local_file = path + "local_params_" + std::to_string(rabit::GetRank());
-  auto *stream = dmlc::Stream::Create(&local_file[0], "w");
+  std::string local_params = path + "local_params_" + std::to_string(rabit::GetRank());
+  auto *stream = dmlc::Stream::Create(&local_params[0], "w");
   local_model.Save(stream);
   delete stream;
 
@@ -161,15 +163,13 @@ int main(int argc, char* argv[]) {
     delete streama;
   }
 
-  if (rabit::GetRank() == 0) {
-    std::string auc = path + "admm_auc"; 
-    auto *streamb(dmlc::Stream::Create(&auc[0], "w"));
-    //get the test set
-    ::admm::SampleSet test_set;
-    CHECK(test_set.Initialize(argv[6], rabit::GetRank(),1)); 
-    local_model.SaveAuc(streamb, test_set);
-    delete streamb;
-  }
+  std::string local_auc = path + "admm_auc_" + std::to_string(rabit::GetRank());
+  auto *streamb(dmlc::Stream::Create(&local_auc[0], "w"));
+  //get the test set
+  ::admm::SampleSet test_set;
+  CHECK(test_set.Initialize(test_name, 0, 1)); 
+  local_model.SaveAuc(streamb, test_set);
+  delete streamb;
 
   rabit::Finalize();
 }
