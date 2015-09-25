@@ -83,9 +83,11 @@ FtrlSolver::real_t FtrlSolver::Predict(FtrlSolver::Row& x, std::vector<FtrlSolve
 }
 
 void FtrlSolver::Update(const FtrlSolver::Row& x, FtrlSolver::real_t predict) {
+    int label = 0;
 	for(auto i = 0u; i < x.length; ++i) {
 	    //g[i] = (p - y)*x[i]
-	    auto loss = (predict - x.label) * x.value[i];
+        if (x.label == 1) label = 1;
+	    auto loss = (predict - label) * x.value[i];
 		auto sigma = (sqrt(squared_sum_[x.index[i]] + loss*loss) - sqrt(squared_sum_[x.index[i]]))/alpha_;
 		//z[i] = z[i] + g[i] - sigma*w[i]
 		mid_weight_[x.index[i]] += loss - sigma * weight_[x.index[i]];

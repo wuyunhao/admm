@@ -19,12 +19,13 @@ def auc(x, y):
     #print(count, num_zeros, len(x)-num_zeros)
     print "%.4f" % (count/(num_zeros*(len(x)-num_zeros)))
 
-fp = open(sys.argv[1], 'r')
-x = fp.readline()
-x = x[:-2]
-y = fp.readline()
-y = y[:-1]
-x = x.split(' ')
-y = y.split(' ')
-#print(x, y)
-auc(x,y)
+for file in sys.argv[1:]:
+    fp = open(file, 'r')
+    x = fp.readline()
+    x = x[:-2]
+    y = fp.readline()
+    y = y[:-1]
+    x = x.split(' ')
+    y = y.split(' ')
+    #print(x, y)
+    auc(x,y)

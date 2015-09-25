@@ -1,5 +1,6 @@
 #include <memory>
 #include <cstdlib>
+#include <cstdio>
 #include <rabit.h>
 #include <dmlc/logging.h>
 #include <dmlc/io.h>
@@ -98,11 +99,15 @@ int main(int argc, char* argv[]) {
   LocalModel local_model;
   GlobalModel global_model;
   ::admm::SampleSet sample_set;
-  std::string train_name = "data/" + std::to_string(rabit::GetRank()) + ".libsvm.train";
-  std::string test_name = "data/" + std::to_string(rabit::GetRank()) + ".libsvm.test";
+
+  std::string path = argv[5];
+  std::string pid_name(5, '0'); 
+  sprintf(&pid_name[0], "%05d", rabit::GetRank() + 1);
+  std::string train_name = path + pid_name + ".train";
+  std::string test_name = path + pid_name + ".test";
   CHECK(sample_set.Initialize(train_name, 0, 1));
 
-  int max_iter = 3;
+  int max_iter = 1;
   int iter = rabit::LoadCheckPoint(&global_model);
   if (iter == 0) {
     global_model.InitModel(atof(argv[1]),
@@ -149,9 +154,7 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  std::string path = "data/"; // "hdfs://ns1/user/yunhao1/admm/";
-
-  std::string local_params = path + "local_params_" + std::to_string(rabit::GetRank());
+  std::string local_params = path + "local_params_" + std::to_string(rabit::GetRank() + 1);
   auto *stream = dmlc::Stream::Create(&local_params[0], "w");
   local_model.Save(stream);
   delete stream;
@@ -163,7 +166,7 @@ int main(int argc, char* argv[]) {
     delete streama;
   }
 
-  std::string local_auc = path + "admm_auc_" + std::to_string(rabit::GetRank());
+  std::string local_auc = path + "admm_auc_" + std::to_string(rabit::GetRank() + 1);
   auto *streamb(dmlc::Stream::Create(&local_auc[0], "w"));
   //get the test set
   ::admm::SampleSet test_set;
