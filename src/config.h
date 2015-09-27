@@ -23,10 +23,12 @@ class AdmmConfig {
   void Init(real_t global_var_init,
             real_t bias_var_init,
             real_t step_size_init,
+            real_t alpha_init,
             std::size_t dim_init) {
     global_var = global_var_init;
     bias_var = bias_var_init;
     step_size = step_size_init;
+    ftrl_alpha = alpha_init;
     dim = dim_init; 
     global_weights.resize(dim);
     std::fill(global_weights.begin(), global_weights.end(), 0.0f);
@@ -34,6 +36,7 @@ class AdmmConfig {
   real_t step_size;
   real_t global_var;
   real_t bias_var;
+  real_t ftrl_alpha;
   std::size_t dim;
   std::vector<real_t> global_weights;
 };
@@ -44,7 +47,7 @@ class FtrlConfig {
   FtrlConfig() {
   }
   
-  FtrlConfig(const AdmmConfig& admm_params) : alpha(0.23), beta(1), niter(1), dim(admm_params.dim) {
+  FtrlConfig(const AdmmConfig& admm_params) : alpha(admm_params.ftrl_alpha), beta(1), niter(1), dim(admm_params.dim) {
   }
   
   ~FtrlConfig() {

@@ -87,8 +87,9 @@ class GlobalModel : public dmlc::Serializable {
    void InitModel(float global_var,
                   float bias_var,
                   float step_size,
+                  float alpha,
                   std::size_t dim) {
-     admm_params_.Init(global_var, bias_var, step_size, dim);
+     admm_params_.Init(global_var, bias_var, step_size, alpha, dim);
    }
 };
 
@@ -100,9 +101,13 @@ int main(int argc, char* argv[]) {
   GlobalModel global_model;
   ::admm::SampleSet sample_set;
 
-  std::string path = argv[5];
+  std::string path = argv[6];
   std::string pid_name(5, '0'); 
-  sprintf(&pid_name[0], "%05d", rabit::GetRank() + 1);
+  if (argc > 7) {
+    pid_name = argv[7];
+  } else {
+    sprintf(&pid_name[0], "%05d", rabit::GetRank() + 1);
+  }
   std::string train_name = path + pid_name + ".train";
   std::string test_name = path + pid_name + ".test";
   CHECK(sample_set.Initialize(train_name, 0, 1));
@@ -113,8 +118,9 @@ int main(int argc, char* argv[]) {
     global_model.InitModel(atof(argv[1]),
                            atof(argv[2]),
                            atof(argv[3]),
-                           atoi(argv[4]));
-    local_model.InitModel(atoi(argv[4]));
+                           atof(argv[4]),
+                           atoi(argv[5]));
+    local_model.InitModel(atoi(argv[5]));
   }
 
   rabit::TrackerPrintf("Initialization finished\n");

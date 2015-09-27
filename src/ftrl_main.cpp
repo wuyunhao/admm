@@ -66,7 +66,10 @@ int main(int argc, char* argv[]) {
 
   rabit::TrackerPrintf("Initialization \n");
   ::admm::SampleSet sample_set;
-  CHECK(sample_set.Initialize(argv[7], rabit::GetRank(), 1));
+  std::string path = argv[7];
+  std::string train_name = path + std::string(argv[8]) + ".train";
+  std::string test_name = path + std::string(argv[8]) + ".test";
+  CHECK(sample_set.Initialize(train_name, rabit::GetRank(), 1));
   Model ftrl_model;
   ftrl_model.InitModel(atof(argv[1]),
                        atof(argv[2]),
@@ -81,12 +84,11 @@ int main(int argc, char* argv[]) {
   std::vector<float> weight = ftrl_model.ftrl_processor_.weight();
 
   rabit::TrackerPrintf("compute auc \n");
-  std::string path =  "data/";// "hdfs://ns1/user/yunhao1/admm/";
-  std::string auc = path + "ftrl_auc";
-  auto *stream(dmlc::Stream::Create(&auc[0], "w"));
+  std::string auc_name = path + "ftrl_auc";
+  auto *stream(dmlc::Stream::Create(&auc_name[0], "w"));
   //get the test set
   ::admm::SampleSet test_set;
-  CHECK(test_set.Initialize(argv[8], rabit::GetRank(),1)); 
+  CHECK(test_set.Initialize(test_name, rabit::GetRank(),1)); 
   ftrl_model.SaveAuc(stream, test_set);
   delete stream;
 

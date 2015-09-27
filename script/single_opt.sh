@@ -13,8 +13,8 @@ best_lamda_v=1
 best_p=1
 #common
 auc=0.0
-file=data/agaricus.txt
-file1=data/unlabeled.review.libsvm
+path=data/
+file=unlabeled.review #agaricus.txt
 
 function ftrl(){
    li="0.00001 0.0001 0.001 0.01 0.1"
@@ -25,8 +25,8 @@ function ftrl(){
    
    for lamda2 in $lj ;do
        for alpha in $lj ;do
-          LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib:$HADOOP_HOME/lib/native:$JAVA_HOME/lib/amd64:$JAVA_HOME/lib/amd64/server DMLC_ROLE=worker ./tracker/dmlc_local.py -n 1  --log-level DEBUG  ./ftrl  $lamda1 $lamda2 $alpha $beta 1 332440 $file1'.train' $file1'.test'
-          tmp=`./script/auc.py "data/ftrl_auc"` 
+          LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib:$HADOOP_HOME/lib/native:$JAVA_HOME/lib/amd64:$JAVA_HOME/lib/amd64/server DMLC_ROLE=worker ./tracker/dmlc_local.py -n 1  --log-level DEBUG  ./ftrl  $lamda1 $lamda2 $alpha $beta 1 332440 $path $file
+          tmp=`./script/auc.py "${path}ftrl_auc"` 
           echo $lamda2 $alpha $tmp >> "ftrl_op.txt"
           if [ `expr $auc \< $tmp` -eq 1 ];then
               best_lamda1=$lamda1
@@ -48,8 +48,8 @@ function admm(){
    for p in $lj ;do
      for lamda_w in $li;do
          for lamda_v in $li;do
-            LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib:$HADOOP_HOME/lib/native:$JAVA_HOME/lib/amd64:$JAVA_HOME/lib/amd64/server DMLC_ROLE=worker ./tracker/dmlc_local.py -n 1  --log-level DEBUG  ./admm $lamda_w $lamda_v $p 332440 $file1'.train' $file1'.test'
-            tmp=`./script/auc.py "data/admm_auc_0"`
+            LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib:$HADOOP_HOME/lib/native:$JAVA_HOME/lib/amd64:$JAVA_HOME/lib/amd64/server DMLC_ROLE=worker ./tracker/dmlc_local.py -n 1  --log-level DEBUG  ./admm $lamda_w $lamda_v $p $alpha 332440 $path $file
+            tmp=`./script/auc.py "${path}admm_auc_1"`
             echo $lamda_w $lamda_v $p $tmp >> "admm_op.txt"
             if [ `expr $auc \< $tmp` -eq 1 ];then
                 best_lamda_w=$lamda_w
@@ -68,5 +68,5 @@ if [ $1 -eq 0 ];then
 elif [ $1 -eq 1 ];then
     admm
 else
-    rm data/admm_auc_0 admm_op.txt ftrl_op.txt data/ftrl_auc
+    rm data/admm_auc_1 admm_op.txt ftrl_op.txt data/ftrl_auc
 fi
