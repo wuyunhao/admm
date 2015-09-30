@@ -32,6 +32,21 @@ class Model : public dmlc::Serializable {
         os << weights[i] << ' ';
       }
     }
+    void LogLoss(::admm::SampleSet &sample_set) {
+      sample_set.Rewind();
+
+      std::vector<float> weights = ftrl_processor_.weight();
+      float sum = 0.0;
+      int count = 0;
+
+      while(sample_set.Next()) {
+        dmlc::Row<std::size_t> x = sample_set.GetData();
+        auto predict = Predict(x, weights);
+        sum +=  (int)x.label == 1? -log(predict) : -log(1.0f - predict);
+        count++;
+      }
+      rabit::TrackerPrintf("[INFO] LOGLOSS is %f\n", sum/count);
+    }
     void SaveAuc(dmlc::Stream *fo, ::admm::SampleSet &sample_set) {
       dmlc::ostream os(fo);
       sample_set.Rewind();
@@ -45,16 +60,16 @@ class Model : public dmlc::Serializable {
       sample_set.Rewind();
       while(sample_set.Next()) {
         dmlc::Row<std::size_t> x = sample_set.GetData();
-        os << Predict(x, weights) << ' ';
+        auto predict = Predict(x, weights);
+        os << predict << ' ';
       }
     }
     void InitModel(float l_1,
                    float l_2,
                    float alpha,
                    float beta,
-                   std::size_t niter,
                    std::size_t dim) {
-      ftrl_params_.Init(l_1, l_2, alpha, beta, niter, dim); 
+      ftrl_params_.Init(l_1, l_2, alpha, beta, dim); 
       ftrl_processor_.Init(ftrl_params_);
     }
 }; 
@@ -65,31 +80,37 @@ int main(int argc, char* argv[]) {
   rabit::Init(argc, argv);
 
   rabit::TrackerPrintf("Initialization \n");
-  ::admm::SampleSet sample_set;
+  ::admm::SampleSet train_set;
+  int niter = atoi(argv[5]);
   std::string path = argv[7];
   std::string train_name = path + std::string(argv[8]) + ".train";
   std::string test_name = path + std::string(argv[8]) + ".test";
-  CHECK(sample_set.Initialize(train_name, rabit::GetRank(), 1));
+  CHECK(train_set.Initialize(train_name, rabit::GetRank(), 1));
   Model ftrl_model;
   ftrl_model.InitModel(atof(argv[1]),
                        atof(argv[2]),
                        atof(argv[3]),
                        atof(argv[4]),
-                       atoi(argv[5]),
                        atoi(argv[6]));
   std::vector<float> offset;
 
   rabit::TrackerPrintf("ftrl execution \n");
-  ftrl_model.ftrl_processor_.Run(sample_set, offset);
-  std::vector<float> weight = ftrl_model.ftrl_processor_.weight();
+  for (int i = 0; i < niter; ++i) {
+    ftrl_model.ftrl_processor_.Run(train_set, offset);
+    rabit::TrackerPrintf("[INFO] the %dth iteration:\n ", i);
+    ftrl_model.LogLoss(train_set);
+  }
 
   rabit::TrackerPrintf("compute auc \n");
-  std::string auc_name = path + "ftrl_auc";
+  std::string auc_name = path + "ftrl_auc" + "_" + std::string(argv[8]);
   auto *stream(dmlc::Stream::Create(&auc_name[0], "w"));
-  //get the test set
   ::admm::SampleSet test_set;
   CHECK(test_set.Initialize(test_name, rabit::GetRank(),1)); 
+  
+  rabit::TrackerPrintf("train Logloss:\n");
+  ftrl_model.LogLoss(test_set);
   ftrl_model.SaveAuc(stream, test_set);
+
   delete stream;
 
   rabit::Finalize();

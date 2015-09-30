@@ -26,8 +26,7 @@ class FtrlSolver {
   FtrlSolver(real_t lambda_1,
 			 real_t lambda_2,
 			 real_t alpha_init,
-			 real_t  beta_init,
-			 std::size_t niter_init,
+			 real_t beta_init,
 			 std::size_t dim_init);
   FtrlSolver();
   ~FtrlSolver();
@@ -68,9 +67,7 @@ class FtrlSolver {
    * \param the samples set corresponding the model
    */
   void Run(SampleSet& sample_set, std::vector<real_t>& offset);
-
  protected:
-
   /*!
    * \brief the weights 
    */
@@ -101,14 +98,9 @@ class FtrlSolver {
    */
   real_t beta_;
   /*!
-   * \brief the total num of iterations
-   */
-  std::size_t niter_;
-  /*!
    * \brief the dimension of the weights
    */
   std::size_t dim_;
-
 
 };
 } // namespace ftrl

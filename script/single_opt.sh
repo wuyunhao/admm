@@ -4,7 +4,7 @@
 best_lamda1=1
 best_lamda2=1
 lamda1=0
-lamda2=0
+lamda2=0.01
 alpha=0.34
 beta=1
 #admm
@@ -23,44 +23,44 @@ function ftrl(){
        rm "ftrl_op.txt"
    fi
    
-   for lamda2 in $lj ;do
-       for alpha in $lj ;do
-          LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib:$HADOOP_HOME/lib/native:$JAVA_HOME/lib/amd64:$JAVA_HOME/lib/amd64/server DMLC_ROLE=worker ./tracker/dmlc_local.py -n 1  --log-level DEBUG  ./ftrl  $lamda1 $lamda2 $alpha $beta 1 332440 $path $file
-          tmp=`./script/auc.py "${path}ftrl_auc"` 
-          echo $lamda2 $alpha $tmp >> "ftrl_op.txt"
-          if [ `expr $auc \< $tmp` -eq 1 ];then
-              best_lamda1=$lamda1
-              best_lamda2=$lamda2
-              auc=$tmp
-          fi
+   for niter in 10 ;do
+       for alpha in 0.34 ;do
+          LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib:$HADOOP_HOME/lib/native:$JAVA_HOME/lib/amd64:$JAVA_HOME/lib/amd64/server DMLC_ROLE=worker ./tracker/dmlc_local.py -n 1  --log-level DEBUG  ./ftrl  $lamda1 $lamda2 $alpha $beta $niter 332440 $path 00001
+          #tmp=`./script/auc.py "${path}ftrl_auc"` 
+          #echo $lamda2 $alpha $tmp >> "ftrl_op.txt"
+          #if [ `expr $auc \< $tmp` -eq 1 ];then
+          #    best_lamda1=$lamda1
+          #    best_lamda2=$lamda2
+          #    auc=$tmp
+          #fi
        done
    done
-   echo $best_lamda1  $best_lamda2  $auc
+   #echo $best_lamda1  $best_lamda2  $auc
 }
 
 function admm(){
-   li="0.00001 0.0001 0.001 0.01 0.1"
-   lj="0.2 0.4 0.6 0.8"
+   li="0.01"
+   lj="0.03"
    if [ -e "admm_op.txt" ];then
         rm "admm_op.txt"
    fi
    
    for p in $lj ;do
-     for lamda_w in $li;do
-         for lamda_v in $li;do
-            LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib:$HADOOP_HOME/lib/native:$JAVA_HOME/lib/amd64:$JAVA_HOME/lib/amd64/server DMLC_ROLE=worker ./tracker/dmlc_local.py -n 1  --log-level DEBUG  ./admm $lamda_w $lamda_v $p $alpha 332440 $path $file
-            tmp=`./script/auc.py "${path}admm_auc_1"`
-            echo $lamda_w $lamda_v $p $tmp >> "admm_op.txt"
-            if [ `expr $auc \< $tmp` -eq 1 ];then
-                best_lamda_w=$lamda_w
-                best_lamda_v=$lamda_v
-                best_p=$p
-                auc=$tmp
-            fi
+     for lamda_w in 0 ;do
+       for lamda_v in $li;do
+         LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib:$HADOOP_HOME/lib/native:$JAVA_HOME/lib/amd64:$JAVA_HOME/lib/amd64/server DMLC_ROLE=worker ./tracker/dmlc_local.py -n 1  --log-level DEBUG  ./admm $lamda_w $lamda_v $p $alpha 4472 $path 4 
+            #tmp=`./script/auc.py "${path}admm_auc_1"`
+            #echo $lamda_w $lamda_v $p $tmp >> "admm_op.txt"
+            #if [ `expr $auc \< $tmp` -eq 1 ];then
+            #    best_lamda_w=$lamda_w
+            #    best_lamda_v=$lamda_v
+            #    best_p=$p
+            #    auc=$tmp
+            #fi
          done
      done
    done
-   echo $best_lamda_w $best_lamda_v $best_p $auc
+   #echo $best_lamda_w $best_lamda_v $best_p $auc
 }
 
 if [ $1 -eq 0 ];then

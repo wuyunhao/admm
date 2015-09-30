@@ -4,17 +4,15 @@
 #include <dmlc/logging.h>
 #include "ftrl.h"
 
-
 namespace ftrl{
 
 FtrlSolver::FtrlSolver(FtrlSolver::real_t lambda_1,
                        FtrlSolver::real_t lambda_2,
                        FtrlSolver::real_t alpha_init,
                        FtrlSolver::real_t beta_init,
-                       std::size_t niter_init,
                        std::size_t dim_init)
     : l_1_(lambda_1), l_2_(lambda_2), alpha_(alpha_init),
-      beta_(beta_init), niter_(niter_init), dim_(dim_init) {
+      beta_(beta_init), dim_(dim_init) {
 
 	weight_.resize(dim_);
 	mid_weight_.resize(dim_);
@@ -39,16 +37,15 @@ void FtrlSolver::Init(::admm::FtrlConfig& params) {
     alpha_ = params.alpha;
     beta_ = params.beta;
     dim_ = params.dim;
-    niter_ = params.niter;
 
 	weight_.resize(dim_);
 	mid_weight_.resize(dim_);
 	squared_sum_.resize(dim_);
 
 	for(auto i = 0u; i < dim_; ++i) {
-		weight_[i] = 0;
-		mid_weight_[i] = 0;
-		squared_sum_[i] = 0;
+	  weight_[i] = 0;
+	  mid_weight_[i] = 0;
+	  squared_sum_[i] = 0;
 	}
 }
 
@@ -84,15 +81,17 @@ FtrlSolver::real_t FtrlSolver::Predict(FtrlSolver::Row& x, std::vector<FtrlSolve
 
 void FtrlSolver::Update(const FtrlSolver::Row& x, FtrlSolver::real_t predict) {
     int label = 0;
+	//g[i] = (p - y)*x[i]
+    if (x.label == 1) label = 1;
+
+	auto loss = predict - label; 
+
 	for(auto i = 0u; i < x.length; ++i) {
-	    //g[i] = (p - y)*x[i]
-        if (x.label == 1) label = 1;
-	    auto loss = (predict - label) * x.value[i];
-		auto sigma = (sqrt(squared_sum_[x.index[i]] + loss*loss) - sqrt(squared_sum_[x.index[i]]))/alpha_;
-		//z[i] = z[i] + g[i] - sigma*w[i]
-		mid_weight_[x.index[i]] += loss - sigma * weight_[x.index[i]];
-		//n[i] = n[i] + g[i]^2;
-		squared_sum_[x.index[i]] += loss * loss;
+	  auto sigma = (sqrt(squared_sum_[x.index[i]] + loss*loss) - sqrt(squared_sum_[x.index[i]]))/alpha_;
+	  //z[i] = z[i] + g[i] - sigma*w[i]
+	  mid_weight_[x.index[i]] += loss - sigma * weight_[x.index[i]];
+	  //n[i] = n[i] + g[i]^2;
+	  squared_sum_[x.index[i]] += loss * loss;
 	}
 }
 
@@ -110,18 +109,16 @@ void FtrlSolver::Assign(const std::vector<FtrlSolver::real_t>& x) {
 }
 
 void FtrlSolver::Run(FtrlSolver::SampleSet& sample_set, std::vector<FtrlSolver::real_t>& offset) {
-	for(auto i = 0u; i < niter_; ++i) {
-		sample_set.Rewind();
-		while(sample_set.Next()) {
-			Row x = sample_set.GetData();
-            if(offset.size() == 0) {
-			    auto predict = Predict(x);
-			    Update(x,predict);
-            } else {
-			    auto predict = Predict(x,offset);
-			    Update(x,predict);
-            }
-		}
-	}
+  sample_set.Rewind();
+  while(sample_set.Next()) {
+  	Row x = sample_set.GetData();
+    if(offset.size() == 0) {
+  	  auto predict = Predict(x);
+  	  Update(x,predict);
+    } else {
+  	  auto predict = Predict(x,offset);
+  	  Update(x,predict);
+    }
+  }
 }
 } // namespace ftrl
