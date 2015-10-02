@@ -32,7 +32,7 @@ void Worker::BaseUpdate(SampleSet& sample_set, const AdmmConfig& admm_params) {
   std::vector<::ftrl::FtrlSolver::real_t> offset(ftrl_params.dim, 0);
   //set the offset vector
   for (auto i = 0u; i < ftrl_params.dim; ++i) {
-      offset[i] = admm_params.global_weights[i] - langr_vec_[i]/admm_params.step_size + bias_vec_[i]; 
+    offset[i] = admm_params.global_weights[i] - langr_vec_[i]/admm_params.step_size + bias_vec_[i]; 
   }
   ftrl_processor.Run(sample_set, offset);
   

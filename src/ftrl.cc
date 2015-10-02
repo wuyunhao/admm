@@ -19,9 +19,9 @@ FtrlSolver::FtrlSolver(FtrlSolver::real_t lambda_1,
   squared_sum_.resize(dim_);
   
   for(auto i = 0u; i < dim_; ++i){
-  	weight_[i] = 0;
-  	mid_weight_[i] = 0;
-  	squared_sum_[i] = 0;
+    weight_[i] = 0;
+    mid_weight_[i] = 0;
+    squared_sum_[i] = 0;
   }
 } 
 
@@ -51,11 +51,11 @@ void FtrlSolver::Init(::admm::FtrlConfig& params) {
 
 FtrlSolver::real_t FtrlSolver::Predict(FtrlSolver::Row& x) {
   for(auto i = 0u; i < x.length; ++i) {
-  	// w[i] =		 0													 if |z[i]| <= l_1
-  	//		  (sgn(z[i])*l_1 - z[i])/((beta + sqrt(n[i]))/alpha + l_2)   otherwise.
-  	//
-  	real_t sign = mid_weight_[x.index[i]] < 0? -1:1;
-  	weight_[x.index[i]] = abs(mid_weight_[x.index[i]]) <= l_1_? 0:(sign*l_1_ - mid_weight_[x.index[i]])/((beta_ + sqrt(squared_sum_[x.index[i]]))/alpha_ + l_2_);
+    // w[i] =		 0													 if |z[i]| <= l_1
+    //		  (sgn(z[i])*l_1 - z[i])/((beta + sqrt(n[i]))/alpha + l_2)   otherwise.
+    //
+    real_t sign = mid_weight_[x.index[i]] < 0? -1:1;
+    weight_[x.index[i]] = abs(mid_weight_[x.index[i]]) <= l_1_? 0:(sign*l_1_ - mid_weight_[x.index[i]])/((beta_ + sqrt(squared_sum_[x.index[i]]))/alpha_ + l_2_);
   }
   real_t* ptr_weight = &weight_[0];
   auto inner_product = x.SDot(ptr_weight, dim_);
@@ -66,9 +66,9 @@ FtrlSolver::real_t FtrlSolver::Predict(FtrlSolver::Row& x) {
 
 FtrlSolver::real_t FtrlSolver::Predict(FtrlSolver::Row& x, std::vector<FtrlSolver::real_t>& offset) {
   for(auto i = 0u; i < x.length; ++i) {
-      //LOG(INFO) << "x.index[" << i << "] = " << x.index[i] << "\n";
-  	real_t sign = mid_weight_[x.index[i]] < 0? -1:1;
-  	weight_[x.index[i]] = abs(mid_weight_[x.index[i]]) <= l_1_? 0:(sign*l_1_ - mid_weight_[x.index[i]])/((beta_ + sqrt(squared_sum_[x.index[i]]))/alpha_ + l_2_);
+    //LOG(INFO) << "x.index[" << i << "] = " << x.index[i] << "\n";
+    real_t sign = mid_weight_[x.index[i]] < 0? -1:1;
+    weight_[x.index[i]] = abs(mid_weight_[x.index[i]]) <= l_1_? 0:(sign*l_1_ - mid_weight_[x.index[i]])/((beta_ + sqrt(squared_sum_[x.index[i]]))/alpha_ + l_2_);
   }
   
   real_t* ptr_weight = &weight_[0];
@@ -104,7 +104,7 @@ void FtrlSolver::Assign(const std::vector<FtrlSolver::real_t>& x) {
   weight_.resize(dim_);
   LOG(INFO) << "The dim of weight is " << dim_ << " now in ftrl process." << "\n";
   for(auto i = 0u;  i < x.size(); ++i) {
-      weight_[i] = x[i];
+    weight_[i] = x[i];
   }
 }
 
