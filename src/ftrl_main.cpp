@@ -111,7 +111,12 @@ int main(int argc, char* argv[]) {
   ftrl_model.LogLoss(test_set);
   ftrl_model.SaveAuc(stream, test_set);
 
+  std::string ftrl_weight = path + "ftrl_weight_" + std::string(argv[8]);
+  auto *streamb(dmlc::Stream::Create(&ftrl_weight[0], "w"));
+  ftrl_model.Save(streamb);
+
   delete stream;
+  delete streamb;
 
   rabit::Finalize();
   return 0;
