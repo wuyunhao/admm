@@ -38,6 +38,10 @@ class Worker {
    * \brief return the final base weights and langranges of the single model
    */
   void GetWeights(AdmmConfig& admm_params, std::vector<real_t>& ptr) const;
+  /*!
+   * \brief compute the logloss for the current weights solution;
+   */
+  void LogLoss(SampleSet& sample_set, const AdmmConfig& admm_params);
  //private:
   /*!
    * \brief worker's ID

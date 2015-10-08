@@ -3,8 +3,8 @@
 #ftrl
 best_lamda1=1
 best_lamda2=1
-lamda1=0
-lamda2=0.01
+lamda1=0.03
+lamda2=0.02
 alpha=0.34
 beta=1
 #admm
@@ -39,14 +39,14 @@ function ftrl(){
 }
 
 function admm(){
-   li="0.01"
+   li="1"
    lj="0.03"
    if [ -e "admm_op.txt" ];then
         rm "admm_op.txt"
    fi
    
    for p in $lj ;do
-     for lamda_w in 0 ;do
+     for lamda_w in 1 ;do
        for lamda_v in $li;do
          LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib:$HADOOP_HOME/lib/native:$JAVA_HOME/lib/amd64:$JAVA_HOME/lib/amd64/server DMLC_ROLE=worker ./tracker/dmlc_local.py -n 1  --log-level DEBUG  ./admm $lamda_w $lamda_v $p $alpha 4771 $path 4 
             #tmp=`./script/auc.py "${path}admm_auc_1"`

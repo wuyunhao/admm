@@ -1,11 +1,31 @@
 
-#include <dmlc/logging.h>
 #include "workers.h"
+#include <dmlc/logging.h>
+#include <rabit.h>
 #include "ftrl.h"
 #include "config.h"
 
 namespace admm{
-    
+
+void Worker::LogLoss(::admm::SampleSet &sample_set, const AdmmConfig& admm_params) {
+  std::vector<float> final_weights(base_vec_.size());
+  for (size_t i = 0; i < final_weights.size(); ++i) {
+     final_weights[i] = bias_vec_[i] + admm_params.global_weights[i];
+  }
+  float sum = 0.0;
+  int count = 0;
+  sample_set.Rewind();
+  while(sample_set.Next()) {
+    dmlc::Row<std::size_t> x = sample_set.GetData();
+    auto inner_product = x.SDot(&final_weights[0], final_weights.size());
+    auto predict = 1.0f/(1 + exp(- std::max(std::min(inner_product, (float)35), (float)(-35))));
+    sum += (int)x.label == 1? -log(predict): -log(1.0f - predict);
+    count++;
+  }
+  sum = sum/count ;
+  rabit::TrackerPrintf("[INFO] ftrl LOGLOSS is %f\n", sum);
+}
+
 Worker::Worker() {
 }
 
@@ -24,7 +44,7 @@ Worker::~Worker() {
 void Worker::BaseUpdate(SampleSet& sample_set, const AdmmConfig& admm_params) {
   FtrlConfig ftrl_params(admm_params);
   ftrl_params.l_2 = admm_params.step_size;
-  ftrl_params.l_1 = 0;
+  ftrl_params.l_1 = 0.0f;
   
   ::ftrl::FtrlSolver ftrl_processor;
   ftrl_processor.Init(ftrl_params);
@@ -34,12 +54,16 @@ void Worker::BaseUpdate(SampleSet& sample_set, const AdmmConfig& admm_params) {
   for (auto i = 0u; i < ftrl_params.dim; ++i) {
     offset[i] = admm_params.global_weights[i] - langr_vec_[i]/admm_params.step_size + bias_vec_[i]; 
   }
-  ftrl_processor.Run(sample_set, offset);
+  rabit::TrackerPrintf("base ftrl\n");
+  for (int i = 0; i < 3; ++i) { //test
+    ftrl_processor.Run(sample_set, offset);
+    LogLoss(sample_set, admm_params);
+  }
   
   base_vec_ = ftrl_processor.weight();
   //recover the modified base weights 
   for(auto i = 0u; i < ftrl_params.dim; ++i) {
-    base_vec_[i] += -admm_params.global_weights[i] + langr_vec_[i]/admm_params.step_size; 
+    base_vec_[i] = base_vec_[i] - admm_params.global_weights[i] + langr_vec_[i]/admm_params.step_size; 
   }
 }
 
@@ -53,7 +77,11 @@ void Worker::BiasUpdate(SampleSet& sample_set, const AdmmConfig& admm_params) {
   
   //set the offset vector
   std::vector<::ftrl::FtrlSolver::real_t> offset = base_vec_;
-  ftrl_processor.Run(sample_set, offset);
+  rabit::TrackerPrintf("bias ftrl\n");
+  for (int i = 0; i < 3; ++i) {
+    ftrl_processor.Run(sample_set, offset);
+    LogLoss(sample_set, admm_params);
+  }
   
   bias_vec_ = ftrl_processor.weight();
 }

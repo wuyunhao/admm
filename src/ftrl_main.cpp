@@ -18,6 +18,24 @@ float Predict(dmlc::Row<std::size_t>& x, std::vector<float>& weight_vec) {
   return 1.0/(1 + exp(- std::max(std::min(inner_product, (float)35), (float)(-35))));
 }
 
+float L2Reg(float coef, std::vector<float> &x) {
+  float conseq = 0.0f;
+  for (size_t i = 0; i < x.size(); ++i) {
+    conseq += x[i] * x[i];
+  }
+  conseq = conseq * coef; 
+  return conseq;
+}
+
+float L1Reg(float coef, std::vector<float> &x) {
+  float conseq = 0.0f;
+  for (size_t i = 0; i < x.size(); ++i) {
+    conseq += x[i] >= 0? x[i] : -x[i];
+  }
+  conseq = conseq * coef;
+  return conseq;
+}
+
 class Model : public dmlc::Serializable {
   public:
     FtrlSolver ftrl_processor_;
@@ -36,7 +54,7 @@ class Model : public dmlc::Serializable {
       sample_set.Rewind();
 
       std::vector<float> weights = ftrl_processor_.weight();
-      float sum = 0.0;
+      float sum = 0;
       int count = 0;
 
       while(sample_set.Next()) {
@@ -45,7 +63,9 @@ class Model : public dmlc::Serializable {
         sum +=  (int)x.label == 1? -log(predict) : -log(1.0f - predict);
         count++;
       }
-      rabit::TrackerPrintf("[INFO] LOGLOSS is %f\n", sum/count);
+      sum = sum/count; //+ L2Reg(ftrl_processor_.l_2_, ftrl_processor_.weight_);
+      //sum += L1Reg(ftrl_processor_.l_1_, ftrl_processor_.weight_);
+      rabit::TrackerPrintf("[INFO] LOGLOSS is %f\n", sum);
     }
     void SaveAuc(dmlc::Stream *fo, ::admm::SampleSet &sample_set) {
       dmlc::ostream os(fo);

@@ -79,12 +79,41 @@ FtrlSolver::real_t FtrlSolver::Predict(FtrlSolver::Row& x, std::vector<FtrlSolve
   return 1.0/(1 + exp(- std::max(std::min(inner_product, (float)35), (float)(-35)))); 
 }
 
+FtrlSolver::real_t FtrlSolver::Predict(FtrlSolver::Row& x, std::vector<FtrlSolver::real_t>& offset, std::vector<FtrlSolver::real_t>& l2_offset) {
+  for (auto i = 0u; i < x.elngth; ++i) {
+    real_t sign = mid_weight_[x.index[i]] < 0? -1:1;
+    weight_[x.index[i]] = abs(mid_weight_[x.index[i]]) <= l_1_? 0:(sign*l_1_ - mid_weight_[x.index[i]])/((beta_ + sqrt(squared_sum_[x.index[i]]))/alpha_);
+  }
+
+  auto inner_product = x.SDot(&weight_[0], dim_) + x.SDot(&offset[0], dim_);
+  float L2Reg = 0.0f;
+  for (size_t i = 0; i < dim_; ++i) {
+    L2Reg += (weight_[i] + l2_offset[i]) * (weight_[i] + l2_offset[i]);
+  }
+  L2Reg = L2Reg * l_2_ / 2.0f;
+  return 1.0/(1 + exp(- std::max(std::min(inner_product, (float)35), (float)(-35)))) + L2Reg; 
+}
+
 void FtrlSolver::Update(const FtrlSolver::Row& x, FtrlSolver::real_t predict) {
   int label = 0;
   //g[i] = (p - y)*x[i]
-  if (x.label == 1) label = 1;
+  if (x.label == 1.0f) label = 1;
+  auto loss = predict - label;
   
-  auto loss = predict - label; 
+  for(auto i = 0u; i < x.length; ++i) {
+    auto sigma = (sqrt(squared_sum_[x.index[i]] + loss*loss) - sqrt(squared_sum_[x.index[i]]))/alpha_;
+    //z[i] = z[i] + g[i] - sigma*w[i]
+    mid_weight_[x.index[i]] += loss - sigma * weight_[x.index[i]];
+    //n[i] = n[i] + g[i]^2;
+    squared_sum_[x.index[i]] += loss * loss;
+  }
+}
+
+void FtrlSolver::Update_new(const FtrlSolver::Row& x, FtrlSolver::real_t predict) {
+  int label = 0;
+  //g[i] = (p - y)*x[i]
+  if (x.label == 1.0f) label = 1;
+  auto loss = predict - label;
   
   for(auto i = 0u; i < x.length; ++i) {
     auto sigma = (sqrt(squared_sum_[x.index[i]] + loss*loss) - sqrt(squared_sum_[x.index[i]]))/alpha_;
@@ -111,7 +140,7 @@ void FtrlSolver::Assign(const std::vector<FtrlSolver::real_t>& x) {
 void FtrlSolver::Run(FtrlSolver::SampleSet& sample_set, std::vector<FtrlSolver::real_t>& offset) {
   sample_set.Rewind();
   while(sample_set.Next()) {
-  	Row x = sample_set.GetData();
+    Row x = sample_set.GetData();
     if(offset.size() == 0) {
       auto predict = Predict(x);
       Update(x,predict);
