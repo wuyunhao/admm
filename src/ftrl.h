@@ -41,7 +41,6 @@ class FtrlSolver {
    */
   real_t Predict(Row& x);
   real_t Predict(Row& x, std::vector<real_t>& offset);
-  real_t Predict(Row& x, std::vector<real_t>& offset, std::vector<real_t>& l2_offset);
 
   /*!
    * \brief assignment for the weights

@@ -20,37 +20,6 @@ float Predict(dmlc::Row<std::size_t>& x, std::vector<float>& weight_vec) {
   return 1.0/(1 + exp(- std::max(std::min(inner_product, (float)35), (float)(-35)))); 
 }
 
-//void FtrlLogLoss(::admm::SampleSet &sample_set, std::vector<float>weights) {
-//  sample_set.Rewind();
-//  float sum = 0.0;
-//  int count = 0;
-//
-//  while(sample_set.Next()) {
-//    dmlc::Row<std::size_t> x = sample_set.getData();
-//    auto predict = Predict(x, weights);
-//    sum += (int)x.label == 1? -log(predict) : -log(1.0f - predict);
-//    count++;
-//  }
-//  rabit::TrackerPrintf("[INFO] FTRL LOGLOSS is %f\n", sum/count);
-//}
-float L2Reg(float coef, std::vector<float> &x) {
-  float conseq = 0.0f;
-  for (size_t i = 0; i < x.size(); ++i) {
-    conseq += x[i] * x[i];
-  }
-  conseq = conseq * coef / 2.0f;
-  return conseq;
-}
-
-float L1Reg(float coef, std::vector<float> &x) {
-  float conseq = 0.0f;
-  for (size_t i = 0; i < x.size(); ++i) {
-    conseq += x[i] > 0? x[i] : -x[i];
-  }
-  conseq = conseq * coef;
-  return conseq;
-}
-
 class LocalModel : public dmlc::Serializable {
   public:
    ::admm::Worker worker_processor_;
@@ -75,7 +44,7 @@ class LocalModel : public dmlc::Serializable {
    void LogLoss(::admm::SampleSet &sample_set, ::admm::AdmmConfig &admm_params) {
      std::vector<float> final_weights(worker_processor_.base_vec_.size());
      for (size_t i = 0; i < final_weights.size(); ++i) {
-        final_weights[i] = worker_processor_.bias_vec_[i] + admm_params.global_weights[i];
+        final_weights[i] = worker_processor_.bias_vec_[i] + worker_processor_.base_vec_[i];
      }
      float sum = 0.0;
      int count = 0;
@@ -89,12 +58,7 @@ class LocalModel : public dmlc::Serializable {
        //if (sum > 2000000) return;
        count++;
      }
-     for (size_t i = 0; i < final_weights.size(); ++i) {
-       final_weights[i] = worker_processor_.base_vec_[i] - admm_params.global_weights[i] + worker_processor_.langr_vec_[i]/admm_params.step_size;
-     }
-     sum = sum/count ;//+ L2Reg(admm_params.step_size, final_weights);
-     //sum += L1Reg(admm_params.bias_var, worker_processor_.bias_vec_);
-     rabit::TrackerPrintf("[INFO] LOGLOSS is %f\n", sum);
+     LOG(INFO) << "==================> LOGLOSS is " << sum/count << '\n';
    }
 
    void SaveAuc(dmlc::Stream *fo, ::admm::SampleSet &sample_set) {
@@ -194,25 +158,26 @@ int main(int argc, char* argv[]) {
 
     auto lazy_ftrl = [&]()
     {
-      local_model.worker_processor_.BiasUpdate(train_set, global_model.admm_params_);
+      local_model.worker_processor_.BiasUpdate(train_set, global_model.admm_params_, test_set);
       //LOG(INFO) << r << "th BiasUpdate Logloss \n";
       //local_model.LogLoss(train_set, global_model.admm_params_);
-      local_model.worker_processor_.BaseUpdate(train_set, global_model.admm_params_);
+      local_model.worker_processor_.BaseUpdate(train_set, global_model.admm_params_, test_set);
       //LOG(INFO) << r << "th BaseUpdate Logloss \n";
       //local_model.LogLoss(train_set, global_model.admm_params_);
       local_model.worker_processor_.GetWeights(global_model.admm_params_, tmp);
     };
 
 
-    LOG(INFO) << "the " << rabit::GetRank() << " reduce begins " << rabit::VersionNumber() << "\n";
+    //LOG(INFO) << "the " << rabit::GetRank() << " reduce begins " << rabit::VersionNumber() << "\n";
     rabit::Allreduce<op::Sum>(&tmp[0], dim, lazy_ftrl);
-    LOG(INFO) << "the " << rabit::GetRank() << " reduce ends " << rabit::VersionNumber() << "\n";
+    //LOG(INFO) << "the " << rabit::GetRank() << " reduce ends " << rabit::VersionNumber() << "\n";
 
     master_processor.GlobalUpdate(tmp, global_model.admm_params_, rabit::GetWorldSize());
 
     local_model.worker_processor_.LangrangeUpdate(train_set, global_model.admm_params_);
     rabit::LazyCheckPoint(&global_model);
     local_model.LogLoss(train_set, global_model.admm_params_);
+    local_model.LogLoss(test_set, global_model.admm_params_);
 
     if (rabit::GetRank() == 0) {
       rabit::TrackerPrintf("Finish %d-th iteration\n", r);

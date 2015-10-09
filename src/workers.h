@@ -25,11 +25,11 @@ class Worker {
    * \param batches the traning instances specified by the task 
    * \param params the configure parameters
    */
-  void BaseUpdate(SampleSet& sample_set, const AdmmConfig& admm_params);
+  void BaseUpdate(SampleSet& sample_set, const AdmmConfig& admm_params, SampleSet& test_set);
   /*!
    * \brief update the bias weights of the single model.
    */
-  void BiasUpdate(SampleSet& sample_set, const AdmmConfig& admm_params);
+  void BiasUpdate(SampleSet& sample_set, const AdmmConfig& admm_params, SampleSet& test_set);
   /*!
    * \brief update the langrange coefficients of the single model.
    */
@@ -41,7 +41,7 @@ class Worker {
   /*!
    * \brief compute the logloss for the current weights solution;
    */
-  void LogLoss(SampleSet& sample_set, const AdmmConfig& admm_params);
+  void LogLoss(SampleSet& sample_set, const AdmmConfig& admm_params, bool T);
  //private:
   /*!
    * \brief worker's ID
