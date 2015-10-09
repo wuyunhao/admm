@@ -57,13 +57,12 @@ void Worker::BaseUpdate(SampleSet& sample_set, const AdmmConfig& admm_params) {
   rabit::TrackerPrintf("base ftrl\n");
   for (int i = 0; i < 3; ++i) { //test
     ftrl_processor.Run(sample_set, offset);
-    LogLoss(sample_set, admm_params);
   }
   
   base_vec_ = ftrl_processor.weight();
   //recover the modified base weights 
   for(auto i = 0u; i < ftrl_params.dim; ++i) {
-    base_vec_[i] = base_vec_[i] - admm_params.global_weights[i] + langr_vec_[i]/admm_params.step_size; 
+    base_vec_[i] = base_vec_[i] + admm_params.global_weights[i] - langr_vec_[i]/admm_params.step_size; 
   }
 }
 
@@ -80,7 +79,6 @@ void Worker::BiasUpdate(SampleSet& sample_set, const AdmmConfig& admm_params) {
   rabit::TrackerPrintf("bias ftrl\n");
   for (int i = 0; i < 3; ++i) {
     ftrl_processor.Run(sample_set, offset);
-    LogLoss(sample_set, admm_params);
   }
   
   bias_vec_ = ftrl_processor.weight();
