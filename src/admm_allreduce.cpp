@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cmath>
+#include <iostream>
 #include <rabit.h>
 #include <dmlc/logging.h>
 #include <dmlc/io.h>
@@ -14,10 +15,9 @@ using namespace dmlc;
 using namespace rabit;
 
 float Predict(dmlc::Row<std::size_t>& x, std::vector<float>& weight_vec) {
-  auto* ptr_weight = &weight_vec[0];
-  auto inner_product = x.SDot(ptr_weight, weight_vec.size());
+  auto inner_product = x.SDot(&weight_vec[0], weight_vec.size());
 
-  return 1.0/(1 + exp(- std::max(std::min(inner_product, (float)35), (float)(-35)))); 
+  return 1.0f/(1 + exp(- std::max(std::min(inner_product, (float)35), (float)(-35)))); 
 }
 
 class LocalModel : public dmlc::Serializable {
@@ -46,19 +46,31 @@ class LocalModel : public dmlc::Serializable {
      for (size_t i = 0; i < final_weights.size(); ++i) {
         final_weights[i] = worker_processor_.bias_vec_[i] + worker_processor_.base_vec_[i];
      }
+     float tmp_sum = 0.0;
+     float tmp_sum2 = 0.0;
      float sum = 0.0;
+     float sum2 = 0.0;
      int count = 0;
      sample_set.Rewind();
      while(sample_set.Next()) {
        dmlc::Row<std::size_t> x = sample_set.GetData();
-       auto predict = Predict(x,  final_weights);
-       //LOG(INFO) << "the "<< count << "th predict:  " << predict << "\n";
+       auto inner_product = x.SDot(&worker_processor_.bias_vec_[0], worker_processor_.bias_vec_.size()) + x.SDot(&worker_processor_.base_vec_[0], worker_processor_.base_vec_.size());
+       auto predict = 1.0f/(1 + exp(- std::max(std::min(inner_product, (float)35), (float)(-35))));
+       auto predict2 = Predict(x, final_weights);
        sum += (int)x.label == 1? -log(predict): -log(1.0f - predict);
-       //LOG(INFO) << "sum:  " << sum << "\n";
-       //if (sum > 2000000) return;
+       sum2 += (int)x.label == 1? -log(predict2): -log(1.0f - predict2);
+       if (sum - sum2 > 1.0f || sum2 - sum > 1.0f) {
+         LOG(INFO) << "now sum ----> " << sum << " : " << sum2;
+         LOG(INFO) << "now predict ----> " << 1.0f - predict << ":" << 1.0f - predict2;
+         LOG(INFO) << "now log ----> " << log(1.0f - predict) << " : " << log(1.0f - predict2);
+         LOG(INFO) << "pre sum ----> " << tmp_sum <<":"<< tmp_sum2;
+         return;
+       }
+       tmp_sum = sum; tmp_sum2 = sum2;
+         
        count++;
      }
-     LOG(INFO) << "==================> LOGLOSS is " << sum/count << '\n';
+     LOG(INFO) << "==================> LOGLOSS is " << sum << "------" <<  sum2 << '\n';
    }
 
    void SaveAuc(dmlc::Stream *fo, ::admm::SampleSet &sample_set) {
@@ -118,7 +130,6 @@ int main(int argc, char* argv[]) {
   
   LocalModel local_model;
   GlobalModel global_model;
-  ::admm::SampleSet train_set;
 
   std::string path = argv[6];
   std::string pid_name(5, '0'); 
@@ -129,6 +140,8 @@ int main(int argc, char* argv[]) {
   }
   std::string train_name = path + pid_name + ".train";
   std::string test_name = path + pid_name + ".test";
+
+  ::admm::SampleSet train_set;
   CHECK(train_set.Initialize(train_name, 0, 1));
 
   //get the test set
@@ -158,10 +171,11 @@ int main(int argc, char* argv[]) {
 
     auto lazy_ftrl = [&]()
     {
-      local_model.worker_processor_.BiasUpdate(train_set, global_model.admm_params_, test_set);
+      local_model.worker_processor_.BiasUpdate(train_set, test_set, global_model.admm_params_);
       //LOG(INFO) << r << "th BiasUpdate Logloss \n";
       //local_model.LogLoss(train_set, global_model.admm_params_);
-      local_model.worker_processor_.BaseUpdate(train_set, global_model.admm_params_, test_set);
+      local_model.worker_processor_.LogLoss(test_set, global_model.admm_params_, false);
+      local_model.worker_processor_.BaseUpdate(train_set, test_set, global_model.admm_params_);
       //LOG(INFO) << r << "th BaseUpdate Logloss \n";
       //local_model.LogLoss(train_set, global_model.admm_params_);
       local_model.worker_processor_.GetWeights(global_model.admm_params_, tmp);

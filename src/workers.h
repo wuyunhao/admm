@@ -25,11 +25,11 @@ class Worker {
    * \param batches the traning instances specified by the task 
    * \param params the configure parameters
    */
-  void BaseUpdate(SampleSet& sample_set, const AdmmConfig& admm_params, SampleSet& test_set);
+  void BaseUpdate(SampleSet& train_set, SampleSet& test_set, const AdmmConfig& admm_params);
   /*!
    * \brief update the bias weights of the single model.
    */
-  void BiasUpdate(SampleSet& sample_set, const AdmmConfig& admm_params, SampleSet& test_set);
+  void BiasUpdate(SampleSet& train_set, SampleSet& test_set, const AdmmConfig& admm_params);
   /*!
    * \brief update the langrange coefficients of the single model.
    */
@@ -42,6 +42,10 @@ class Worker {
    * \brief compute the logloss for the current weights solution;
    */
   void LogLoss(SampleSet& sample_set, const AdmmConfig& admm_params, bool T);
+  /*!
+   * \brief save ftrl parameters
+   */
+  void SaveFtrl(const std::vector<real_t>& x, const std::vector<real_t>& y);
  //private:
   /*!
    * \brief worker's ID
@@ -59,6 +63,12 @@ class Worker {
    * \brief the langrange coefficients
    */
   std::vector<real_t> langr_vec_;
+  /*!
+   * \brief the tmp vectors for saving ftrl 
+   */
+  std::vector<real_t> save_mid_weights_;
+
+  std::vector<real_t> save_squared_sum_;
 };
 
 } // namespace admm

@@ -40,21 +40,21 @@ class FtrlSolver {
    * \return prediction of instance x.
    */
   real_t Predict(Row& x);
-  real_t Predict(Row& x, std::vector<real_t>& offset);
+  real_t Predict(Row& x, const std::vector<real_t>& offset);
 
   /*!
    * \brief assignment for the weights
    *
    * \param x the target which the weights are assigned with.
    */
-  void Assign(const std::vector<real_t>& x);
+  void Assign(const std::vector<real_t>& x, const std::vector<real_t>& y);
   /*!
    * \brief update model using ftrl algorithm
    *
    * \param x the processed training instance
    * \param predict the prediction of x
    */
-  void Update(const Row& x, real_t predict);
+  void Update(real_t predict, const Row& x, const std::vector<real_t>& reg_offset);
 
   /*!
    * \brief get the weight solution
@@ -66,7 +66,7 @@ class FtrlSolver {
    *
    * \param the samples set corresponding the model
    */
-  void Run(SampleSet& sample_set, std::vector<real_t>& offset);
+  void Run(SampleSet& sample_set, const std::vector<real_t>& offset, const std::vector<real_t>& reg_offset);
  //protected:
   /*!
    * \brief the weights 
