@@ -6,6 +6,7 @@
 #include "sample_set.h"
 #include "ftrl.h"
 #include "config.h"
+#include "metrics.h"
 
 using namespace rabit;
 using namespace ftrl; 
@@ -45,11 +46,10 @@ class Model : public dmlc::Serializable {
         sum +=  (int)x.label == 1? -log(predict) : -log(1.0f - predict);
         count++;
       }
-      sum = sum/count; 
       if (T) 
-        LOG(INFO) << "train  LOGLOSS: " << sum;
+        LOG(INFO) << "train  LOGLOSS: " << sum/count;
       else
-        LOG(INFO) << "test LOGLOSS: " << sum;
+        LOG(INFO) << "test LOGLOSS: " << sum/count;
     }
     void SaveAuc(dmlc::Stream *fo, ::admm::SampleSet &sample_set) {
       dmlc::ostream os(fo);
@@ -93,6 +93,7 @@ int main(int argc, char* argv[]) {
   ::admm::SampleSet test_set;
   CHECK(test_set.Initialize(test_name, rabit::GetRank(),1)); 
 
+  Metrics metrics;
   Model ftrl_model;
   ftrl_model.InitModel(atof(argv[1]),
                        atof(argv[2]),
@@ -106,8 +107,14 @@ int main(int argc, char* argv[]) {
   for (int i = 0; i < niter; ++i) {
     ftrl_model.ftrl_processor_.Run(train_set, offset, reg_offset);
     LOG(INFO) << "\n  the "<< i << "th iteration: "; 
+    rabit::TrackerPrintf("%d th iteration: \n", i);
     ftrl_model.LogLoss(train_set, true);
     ftrl_model.LogLoss(test_set, false);
+
+    std::vector<std::vector<float>> group_w;
+    group_w.push_back(ftrl_model.ftrl_processor_.weight_);
+    metrics.LogLoss(train_set, group_w, true);
+    metrics.LogLoss(test_set, group_w, false);
   }
 
   rabit::TrackerPrintf("compute auc \n");

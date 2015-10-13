@@ -16,7 +16,8 @@ LIBS += -lpthread -lrabit -ldmlc -lhdfs -lhadoop -ljvm -llbfgs -lrt
 LIBOBJECTS = src/sample_set.o \
 			 src/ftrl.o \
 			 src/workers.o \
-			 src/master.o 
+			 src/master.o \
+			 src/metrics.o
 
 TESTS = test/ftrl_test.cc \
 		test/worker_test.cc

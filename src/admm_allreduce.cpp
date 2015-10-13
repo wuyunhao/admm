@@ -2,7 +2,6 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cmath>
-#include <iostream>
 #include <rabit.h>
 #include <dmlc/logging.h>
 #include <dmlc/io.h>
@@ -10,6 +9,7 @@
 #include "workers.h"
 #include "master.h"
 #include "config.h"
+#include "metrics.h"
 
 using namespace dmlc;
 using namespace rabit;
@@ -41,36 +41,21 @@ class LocalModel : public dmlc::Serializable {
      }
 
    }
-   void LogLoss(::admm::SampleSet &sample_set, ::admm::AdmmConfig &admm_params) {
-     std::vector<float> final_weights(worker_processor_.base_vec_.size());
-     for (size_t i = 0; i < final_weights.size(); ++i) {
-        final_weights[i] = worker_processor_.bias_vec_[i] + worker_processor_.base_vec_[i];
-     }
-     float tmp_sum = 0.0;
-     float tmp_sum2 = 0.0;
-     float sum = 0.0;
-     float sum2 = 0.0;
+   void LogLoss(::admm::SampleSet &sample_set, ::admm::AdmmConfig &admm_params, bool T) {
+     float sum = 0;
      int count = 0;
      sample_set.Rewind();
      while(sample_set.Next()) {
        dmlc::Row<std::size_t> x = sample_set.GetData();
        auto inner_product = x.SDot(&worker_processor_.bias_vec_[0], worker_processor_.bias_vec_.size()) + x.SDot(&worker_processor_.base_vec_[0], worker_processor_.base_vec_.size());
        auto predict = 1.0f/(1 + exp(- std::max(std::min(inner_product, (float)35), (float)(-35))));
-       auto predict2 = Predict(x, final_weights);
-       sum += (int)x.label == 1? -log(predict): -log(1.0f - predict);
-       sum2 += (int)x.label == 1? -log(predict2): -log(1.0f - predict2);
-       if (sum - sum2 > 1.0f || sum2 - sum > 1.0f) {
-         LOG(INFO) << "now sum ----> " << sum << " : " << sum2;
-         LOG(INFO) << "now predict ----> " << 1.0f - predict << ":" << 1.0f - predict2;
-         LOG(INFO) << "now log ----> " << log(1.0f - predict) << " : " << log(1.0f - predict2);
-         LOG(INFO) << "pre sum ----> " << tmp_sum <<":"<< tmp_sum2;
-         return;
-       }
-       tmp_sum = sum; tmp_sum2 = sum2;
-         
+       sum += (int)x.label == 1? -log(predict): -log(1 - predict);
        count++;
      }
-     LOG(INFO) << "==================> LOGLOSS is " << sum << "------" <<  sum2 << '\n';
+     if (T)
+       rabit::TrackerPrintf("The %d processor train LogLoss is %f \n", rabit::GetRank(), sum/count);
+     else
+       rabit::TrackerPrintf("The %d processor test LogLoss is %f \n", rabit::GetRank(), sum/count);
    }
 
    void SaveAuc(dmlc::Stream *fo, ::admm::SampleSet &sample_set) {
@@ -130,6 +115,7 @@ int main(int argc, char* argv[]) {
   
   LocalModel local_model;
   GlobalModel global_model;
+  Metrics metrics;
 
   std::string path = argv[6];
   std::string pid_name(5, '0'); 
@@ -174,24 +160,25 @@ int main(int argc, char* argv[]) {
       local_model.worker_processor_.BiasUpdate(train_set, test_set, global_model.admm_params_);
       //LOG(INFO) << r << "th BiasUpdate Logloss \n";
       //local_model.LogLoss(train_set, global_model.admm_params_);
-      local_model.worker_processor_.LogLoss(test_set, global_model.admm_params_, false);
       local_model.worker_processor_.BaseUpdate(train_set, test_set, global_model.admm_params_);
       //LOG(INFO) << r << "th BaseUpdate Logloss \n";
       //local_model.LogLoss(train_set, global_model.admm_params_);
       local_model.worker_processor_.GetWeights(global_model.admm_params_, tmp);
     };
-
-
-    //LOG(INFO) << "the " << rabit::GetRank() << " reduce begins " << rabit::VersionNumber() << "\n";
     rabit::Allreduce<op::Sum>(&tmp[0], dim, lazy_ftrl);
-    //LOG(INFO) << "the " << rabit::GetRank() << " reduce ends " << rabit::VersionNumber() << "\n";
 
     master_processor.GlobalUpdate(tmp, global_model.admm_params_, rabit::GetWorldSize());
-
     local_model.worker_processor_.LangrangeUpdate(train_set, global_model.admm_params_);
     rabit::LazyCheckPoint(&global_model);
-    local_model.LogLoss(train_set, global_model.admm_params_);
-    local_model.LogLoss(test_set, global_model.admm_params_);
+
+    //local_model.LogLoss(train_set, global_model.admm_params_, true);
+    //local_model.LogLoss(test_set, global_model.admm_params_, false);
+
+    std::vector<std::vector<float>> group_w;
+    group_w.push_back(local_model.worker_processor_.base_vec_);
+    group_w.push_back(local_model.worker_processor_.bias_vec_);
+    metrics.LogLoss(train_set, group_w, true);
+    metrics.LogLoss(test_set, group_w, false);
 
     if (rabit::GetRank() == 0) {
       rabit::TrackerPrintf("Finish %d-th iteration\n", r);
