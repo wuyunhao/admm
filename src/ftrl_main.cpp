@@ -26,6 +26,7 @@ class Model : public dmlc::Serializable {
 
     void Load(dmlc::Stream *fi) {
     }
+
     void Save(dmlc::Stream *fo) const {
       dmlc::ostream os(fo);
       std::vector<float> weights = ftrl_processor_.weight();
@@ -33,24 +34,7 @@ class Model : public dmlc::Serializable {
         os << weights[i] << ' ';
       }
     }
-    void LogLoss(::admm::SampleSet &sample_set, bool T) {
-      sample_set.Rewind();
 
-      std::vector<float> weights = ftrl_processor_.weight();
-      float sum = 0;
-      int count = 0;
-
-      while(sample_set.Next()) {
-        dmlc::Row<std::size_t> x = sample_set.GetData();
-        auto predict = Predict(x, weights);
-        sum +=  (int)x.label == 1? -log(predict) : -log(1.0f - predict);
-        count++;
-      }
-      if (T) 
-        LOG(INFO) << "train  LOGLOSS: " << sum/count;
-      else
-        LOG(INFO) << "test LOGLOSS: " << sum/count;
-    }
     void SaveAuc(dmlc::Stream *fo, ::admm::SampleSet &sample_set) {
       dmlc::ostream os(fo);
       sample_set.Rewind();
@@ -68,6 +52,7 @@ class Model : public dmlc::Serializable {
         os << predict << ' ';
       }
     }
+
     void InitModel(float l_1,
                    float l_2,
                    float alpha,
@@ -108,8 +93,6 @@ int main(int argc, char* argv[]) {
     ftrl_model.ftrl_processor_.Run(train_set, offset, reg_offset);
     LOG(INFO) << "\n  the "<< i << "th iteration: "; 
     rabit::TrackerPrintf("%d th iteration: \n", i);
-    ftrl_model.LogLoss(train_set, true);
-    ftrl_model.LogLoss(test_set, false);
 
     std::vector<std::vector<float>> group_w;
     group_w.push_back(ftrl_model.ftrl_processor_.weight_);
@@ -117,21 +100,15 @@ int main(int argc, char* argv[]) {
     metrics.LogLoss(test_set, group_w, false);
   }
 
-  rabit::TrackerPrintf("compute auc \n");
-  std::string auc_name = path + "ftrl_auc" + "_" + std::string(argv[8]);
-  auto *stream(dmlc::Stream::Create(&auc_name[0], "w"));
-  
-  rabit::TrackerPrintf("====================>  train Logloss:\n");
-  ftrl_model.LogLoss(train_set, false);
-  rabit::TrackerPrintf("====================>  test Logloss:\n");
-  ftrl_model.LogLoss(test_set, false);
-  ftrl_model.SaveAuc(stream, test_set);
+  //rabit::TrackerPrintf("compute auc \n");
+  //std::string auc_name = path + "ftrl_auc" + "_" + std::string(argv[8]);
+  //auto *stream(dmlc::Stream::Create(&auc_name[0], "w"));
+  //ftrl_model.SaveAuc(stream, test_set);
 
   std::string ftrl_weight = path + "ftrl_weight_" + std::string(argv[8]);
   auto *streamb(dmlc::Stream::Create(&ftrl_weight[0], "w"));
   ftrl_model.Save(streamb);
 
-  delete stream;
   delete streamb;
 
   rabit::Finalize();

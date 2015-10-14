@@ -6,7 +6,7 @@ import math
 import numpy as np
 
 def auc(x, y):
-    num_zeros = x.count('0')
+    num_zeros = x.count(0)
     x = np.array(x)
     y = np.array(y)
     order = np.lexsort((y,x))
@@ -17,7 +17,7 @@ def auc(x, y):
             if i < j:
                 count += 1
     #print(count, num_zeros, len(x)-num_zeros)
-    print "%.4f" % (count/(num_zeros*(len(x)-num_zeros)))
+    print "%.6f" % (count/(num_zeros*(len(x)-num_zeros)))
 
 for file in sys.argv[1:]:
     fp = open(file, 'r')
@@ -26,6 +26,8 @@ for file in sys.argv[1:]:
     y = fp.readline()
     y = y[:-1]
     x = x.split(' ')
+    x = [ float(i) for i in x ]
     y = y.split(' ')
+    y = [ float(i) for i in y ]
     #print(x, y)
     auc(x,y)

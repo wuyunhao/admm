@@ -14,18 +14,13 @@
 using namespace dmlc;
 using namespace rabit;
 
-float Predict(dmlc::Row<std::size_t>& x, std::vector<float>& weight_vec) {
-  auto inner_product = x.SDot(&weight_vec[0], weight_vec.size());
-
-  return 1.0f/(1 + exp(- std::max(std::min(inner_product, (float)35), (float)(-35)))); 
-}
-
 class LocalModel : public dmlc::Serializable {
   public:
    ::admm::Worker worker_processor_;
 
    void Load(dmlc::Stream *fi) {
    }
+
    void Save(dmlc::Stream *fo) const {
      dmlc::ostream os(fo);
      for (size_t i = 0; i < worker_processor_.base_vec_.size(); ++i) {
@@ -39,23 +34,6 @@ class LocalModel : public dmlc::Serializable {
      for (size_t i = 0; i < worker_processor_.langr_vec_.size(); ++i) {
        os << worker_processor_.langr_vec_[i] << ' ';
      }
-
-   }
-   void LogLoss(::admm::SampleSet &sample_set, ::admm::AdmmConfig &admm_params, bool T) {
-     float sum = 0;
-     int count = 0;
-     sample_set.Rewind();
-     while(sample_set.Next()) {
-       dmlc::Row<std::size_t> x = sample_set.GetData();
-       auto inner_product = x.SDot(&worker_processor_.bias_vec_[0], worker_processor_.bias_vec_.size()) + x.SDot(&worker_processor_.base_vec_[0], worker_processor_.base_vec_.size());
-       auto predict = 1.0f/(1 + exp(- std::max(std::min(inner_product, (float)35), (float)(-35))));
-       sum += (int)x.label == 1? -log(predict): -log(1 - predict);
-       count++;
-     }
-     if (T)
-       rabit::TrackerPrintf("The %d processor train LogLoss is %f \n", rabit::GetRank(), sum/count);
-     else
-       rabit::TrackerPrintf("The %d processor test LogLoss is %f \n", rabit::GetRank(), sum/count);
    }
 
    void SaveAuc(dmlc::Stream *fo, ::admm::SampleSet &sample_set) {
@@ -67,18 +45,15 @@ class LocalModel : public dmlc::Serializable {
      }
      os << '\n';
 
-     std::vector<float> final_weights(worker_processor_.base_vec_.size());
-     for (size_t i = 0; i < final_weights.size(); ++i) {
-        final_weights[i] = worker_processor_.base_vec_[i] + worker_processor_.bias_vec_[i];
-     }
-
      sample_set.Rewind();
      while(sample_set.Next()) {
        dmlc::Row<std::size_t> x = sample_set.GetData();
-       auto predict = Predict(x, final_weights);
+       auto inner_product = x.SDot(&worker_processor_.bias_vec_[0], worker_processor_.bias_vec_.size()) + x.SDot(&worker_processor_.base_vec_[0], worker_processor_.base_vec_.size());
+       auto predict = 1.0f/(1 + exp(- std::max(std::min(inner_product, (float)35), (float)(-35))));
        os << predict << ' ';
      }
    }
+
    void InitModel(std::size_t fdim) {
      worker_processor_.InitWorker(fdim);
    }
@@ -144,7 +119,6 @@ int main(int argc, char* argv[]) {
                            atoi(argv[5]));
     local_model.InitModel(atoi(argv[5]));
   }
-
   rabit::TrackerPrintf("Initialization finished\n");
 
   std::size_t dim = global_model.admm_params_.dim;
@@ -158,11 +132,7 @@ int main(int argc, char* argv[]) {
     auto lazy_ftrl = [&]()
     {
       local_model.worker_processor_.BiasUpdate(train_set, test_set, global_model.admm_params_);
-      //LOG(INFO) << r << "th BiasUpdate Logloss \n";
-      //local_model.LogLoss(train_set, global_model.admm_params_);
       local_model.worker_processor_.BaseUpdate(train_set, test_set, global_model.admm_params_);
-      //LOG(INFO) << r << "th BaseUpdate Logloss \n";
-      //local_model.LogLoss(train_set, global_model.admm_params_);
       local_model.worker_processor_.GetWeights(global_model.admm_params_, tmp);
     };
     rabit::Allreduce<op::Sum>(&tmp[0], dim, lazy_ftrl);
@@ -171,8 +141,6 @@ int main(int argc, char* argv[]) {
     local_model.worker_processor_.LangrangeUpdate(train_set, global_model.admm_params_);
     rabit::LazyCheckPoint(&global_model);
 
-    //local_model.LogLoss(train_set, global_model.admm_params_, true);
-    //local_model.LogLoss(test_set, global_model.admm_params_, false);
 
     std::vector<std::vector<float>> group_w;
     group_w.push_back(local_model.worker_processor_.base_vec_);
@@ -183,11 +151,11 @@ int main(int argc, char* argv[]) {
     if (rabit::GetRank() == 0) {
       rabit::TrackerPrintf("Finish %d-th iteration\n", r);
     }
-    std::string local_auc = path + "admm_auc_" + pid_name + "_" + std::to_string(r); 
-    auto *streamb(dmlc::Stream::Create(&local_auc[0], "w"));
-    local_model.SaveAuc(streamb, train_set);
-    delete streamb;
   }
+  //std::string local_auc = path + "admm_train_auc_" + pid_name + "_" + std::to_string(r); 
+  //auto *streamb(dmlc::Stream::Create(&local_auc[0], "w"));
+  //local_model.SaveAuc(streamb, train_set);
+  //delete streamb;
 
   std::string local_params = path + "local_params_" + pid_name;
   auto *stream = dmlc::Stream::Create(&local_params[0], "w");

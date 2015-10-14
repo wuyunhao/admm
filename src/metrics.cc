@@ -22,7 +22,7 @@ void Metrics::Sort(const std::vector<Metrics::real_t>& input, std::vector<Metric
     items[i].second = i;
   }
 
-  std::sort(items.begin(), items.end(), [](const std::pair<real_t,int> &a, const std::pair<real_t,int> &b){ return a.first < b.first;});
+  std::stable_sort(items.begin(), items.end(), [](const std::pair<real_t,int> &a, const std::pair<real_t,int> &b){ return a.first < b.first;});
   
   int last_rank = 0;
   std::pair<real_t, int> cur_item = items[0];              
@@ -30,20 +30,19 @@ void Metrics::Sort(const std::vector<Metrics::real_t>& input, std::vector<Metric
     if (cur_item.first != items[i].first) {
       cur_item = items[i];
       for (int j = last_rank; j < i; ++j) {
-        output[items[j].second] = (last_rank + i + 1.0f)/2.0f;
+        output[items[j].second] = (last_rank + i + 1.0f)/2;
       }
       last_rank = i;
     }
     if (i == dim - 1) {
       for (int j = last_rank; j < i+1; ++j) {
-        output[items[j].second] = (last_rank + i + 2.0f)/2.0f;
+        output[items[j].second] = (last_rank + i + 2.0f)/2;
       }
     }
   }
-
 }
 
-Metrics::real_t Metrics::Auc(const std::vector<Metrics::real_t>& ranks, const std::vector<int>& labels) {
+Metrics::real_t Metrics::Auc(const std::vector<Metrics::real_t>& ranks, const std::vector<int>& labels, bool T) {
   std::vector<real_t> sorted_ranks;
   Sort(ranks, sorted_ranks);
   real_t positive_sum = 0;
@@ -54,8 +53,9 @@ Metrics::real_t Metrics::Auc(const std::vector<Metrics::real_t>& ranks, const st
       total_p++;
       positive_sum += sorted_ranks[i];
     }
-    else
+    else {
       total_n++;
+    }
   }
 
   return positive_sum/(total_p*total_n) - (total_p + 1)/(2*total_n);
@@ -82,10 +82,10 @@ Metrics::real_t Metrics::LogLoss(::admm::SampleSet& sample_set, std::vector<std:
     probs.push_back(predict);
     labels.push_back((int)x.label);
   }
-  float auc = Auc(probs, labels);
-  if (T)
+  float auc = Auc(probs, labels, T);
+  if (T) 
     rabit::TrackerPrintf("The %d processor train LogLoss is %f, auc is %f \n", rabit::GetRank(), sum/count, auc);
-  else
+  else 
     rabit::TrackerPrintf("The %d processor test LogLoss is %f , auc is %f \n", rabit::GetRank(), sum/count, auc);
   return sum/count;
 }
