@@ -23,7 +23,7 @@ class Metrics {
    * \pramas ranks the log likelihood vector
    * \params labels the corresponding labels of ranks
    */
-  real_t Auc(const std::vector<real_t>& ranks, const std::vector<int>& labels, bool T);
+  real_t Auc(::admm::SampleSet& sample_set, std::vector<std::vector<real_t>>& weights, bool T);
   /*!
    * \brief calculate logloss 
    * \params sample_set the sample set used

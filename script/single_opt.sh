@@ -14,6 +14,8 @@ best_p=1
 #common
 auc=0.0
 path=data/
+src_path=data/
+dest_path=data/
 file=unlabeled.review #agaricus.txt
 
 function ftrl(){
@@ -23,9 +25,9 @@ function ftrl(){
        rm "ftrl_op.txt"
    fi
    
-   for niter in 28 ;do
+   for niter in 36 ;do
        for alpha in 0.34 ;do
-          LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib:$HADOOP_HOME/lib/native:$JAVA_HOME/lib/amd64:$JAVA_HOME/lib/amd64/server DMLC_ROLE=worker ./tracker/dmlc_local.py -n 1  --log-level DEBUG  ./ftrl  $lamda1 $lamda2 $alpha $beta $niter 4771 $path 00002
+          LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib:$HADOOP_HOME/lib/native:$JAVA_HOME/lib/amd64:$JAVA_HOME/lib/amd64/server DMLC_ROLE=worker ./tracker/dmlc_local.py -n 1  --log-level DEBUG  ./ftrl  $lamda1 $lamda2 $alpha $beta $niter 4771 $path 00001
           #tmp=`./script/auc.py "${path}ftrl_auc"` 
           #echo $lamda2 $alpha $tmp >> "ftrl_op.txt"
           #if [ `expr $auc \< $tmp` -eq 1 ];then
@@ -48,7 +50,7 @@ function admm(){
    for p in $lj ;do
      for lamda_w in 1000 ;do
        for lamda_v in $li;do
-         LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib:$HADOOP_HOME/lib/native:$JAVA_HOME/lib/amd64:$JAVA_HOME/lib/amd64/server DMLC_ROLE=worker ./tracker/dmlc_local.py -n 1  --log-level DEBUG  ./admm $lamda_w $lamda_v $p $alpha 4771 $path 2 00002
+         LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib:$HADOOP_HOME/lib/native:$JAVA_HOME/lib/amd64:$JAVA_HOME/lib/amd64/server DMLC_ROLE=worker ./tracker/dmlc_local.py -n 1  --log-level DEBUG  ./admm $lamda_w $lamda_v $p $alpha 4771 $src_path $dest_path 6  00002
             #tmp=`./script/auc.py "${path}admm_auc_1"`
             #echo $lamda_w $lamda_v $p $tmp >> "admm_op.txt"
             #if [ `expr $auc \< $tmp` -eq 1 ];then

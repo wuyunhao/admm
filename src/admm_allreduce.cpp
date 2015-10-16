@@ -92,24 +92,23 @@ int main(int argc, char* argv[]) {
   GlobalModel global_model;
   Metrics metrics;
 
-  std::string path = argv[6];
-  std::string pid_name(5, '0'); 
-  if (argc > 8) {
-    pid_name = argv[8];
+  std::string src_path = argv[6];
+  std::string dest_path = argv[7];
+  std::string pid_name(20, '0'); 
+  if (argc > 9) {
+    pid_name = argv[9];
   } else {
     sprintf(&pid_name[0], "%05d", rabit::GetRank() + 1);
   }
-  std::string train_name = path + pid_name + ".train";
-  std::string test_name = path + pid_name + ".test";
+  std::string train_name = src_path + pid_name + ".train";
+  std::string test_name = src_path + pid_name + ".test";
 
   ::admm::SampleSet train_set;
   CHECK(train_set.Initialize(train_name, 0, 1));
-
-  //get the test set
   ::admm::SampleSet test_set;
   CHECK(test_set.Initialize(test_name, 0, 1)); 
 
-  int max_iter = atoi(argv[7]);
+  int max_iter = atoi(argv[8]);
   int iter = rabit::LoadCheckPoint(&global_model);
   if (iter == 0) {
     global_model.InitModel(atof(argv[1]),
@@ -145,29 +144,33 @@ int main(int argc, char* argv[]) {
     std::vector<std::vector<float>> group_w;
     group_w.push_back(local_model.worker_processor_.base_vec_);
     group_w.push_back(local_model.worker_processor_.bias_vec_);
+
     metrics.LogLoss(train_set, group_w, true);
+    metrics.Auc(train_set, group_w, true);
     metrics.LogLoss(test_set, group_w, false);
+    metrics.Auc(test_set, group_w, false);
 
     if (rabit::GetRank() == 0) {
       rabit::TrackerPrintf("Finish %d-th iteration\n", r);
     }
   }
-  //std::string local_auc = path + "admm_train_auc_" + pid_name + "_" + std::to_string(r); 
+  //std::string local_auc = dest_path + "admm_train_auc_" + pid_name;
   //auto *streamb(dmlc::Stream::Create(&local_auc[0], "w"));
-  //local_model.SaveAuc(streamb, train_set);
+  //local_model.SaveAuc(streamb, test_set);
   //delete streamb;
 
-  std::string local_params = path + "local_params_" + pid_name;
+  std::string local_params = dest_path + "local_params_" + pid_name;
   auto *stream = dmlc::Stream::Create(&local_params[0], "w");
   local_model.Save(stream);
   delete stream;
 
   if (rabit::GetRank() == 0) {
-    std::string global_file = path + "global_params";
+    std::string global_file = dest_path + "global_params";
     auto *streama(dmlc::Stream::Create(&global_file[0], "w"));
     global_model.Save(streama);
     delete streama;
   }
 
   rabit::Finalize();
+  return 0;
 }

@@ -76,7 +76,7 @@ int main(int argc, char* argv[]) {
   ::admm::SampleSet train_set;
   CHECK(train_set.Initialize(train_name, rabit::GetRank(), 1));
   ::admm::SampleSet test_set;
-  CHECK(test_set.Initialize(test_name, rabit::GetRank(),1)); 
+  CHECK(test_set.Initialize(test_name, rabit::GetRank(), 1)); 
 
   Metrics metrics;
   Model ftrl_model;
@@ -91,13 +91,14 @@ int main(int argc, char* argv[]) {
   rabit::TrackerPrintf("ftrl execution \n");
   for (int i = 0; i < niter; ++i) {
     ftrl_model.ftrl_processor_.Run(train_set, offset, reg_offset);
-    LOG(INFO) << "\n  the "<< i << "th iteration: "; 
     rabit::TrackerPrintf("%d th iteration: \n", i);
 
     std::vector<std::vector<float>> group_w;
     group_w.push_back(ftrl_model.ftrl_processor_.weight_);
     metrics.LogLoss(train_set, group_w, true);
+    metrics.Auc(train_set, group_w, true);
     metrics.LogLoss(test_set, group_w, false);
+    metrics.Auc(test_set, group_w, false);
   }
 
   //rabit::TrackerPrintf("compute auc \n");
