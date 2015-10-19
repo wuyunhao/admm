@@ -69,14 +69,15 @@ int main(int argc, char* argv[]) {
   rabit::Init(argc, argv);
 
   rabit::TrackerPrintf("Initialization \n");
-  int niter = atoi(argv[5]);
-  std::string path = argv[7];
-  std::string train_name = path + std::string(argv[8]) + ".train";
-  std::string test_name = path + std::string(argv[8]) + ".test";
+  int max_iter = atoi(argv[6]);
+  std::string train_path = argv[7];
+  std::string test_path = argv[8];
+  std::string train_name = train_path + std::string(argv[9 + rabit::GetRank()]) + ".train";
+  std::string test_name = test_path + std::string(argv[9 + rabit::GetRank()]) + ".test";
   ::admm::SampleSet train_set;
-  CHECK(train_set.Initialize(train_name, rabit::GetRank(), 1));
+  CHECK(train_set.Initialize(train_name, 0, 1));
   ::admm::SampleSet test_set;
-  CHECK(test_set.Initialize(test_name, rabit::GetRank(), 1)); 
+  CHECK(test_set.Initialize(test_name, 0, 1)); 
 
   Metrics metrics;
   Model ftrl_model;
@@ -84,12 +85,12 @@ int main(int argc, char* argv[]) {
                        atof(argv[2]),
                        atof(argv[3]),
                        atof(argv[4]),
-                       atoi(argv[6]));
+                       atoi(argv[5]));
   std::vector<float> offset;
   std::vector<float> reg_offset;
 
   rabit::TrackerPrintf("ftrl execution \n");
-  for (int i = 0; i < niter; ++i) {
+  for (int i = 0; i < max_iter; ++i) {
     ftrl_model.ftrl_processor_.Run(train_set, offset, reg_offset);
     rabit::TrackerPrintf("%d th iteration: \n", i);
 
@@ -106,7 +107,7 @@ int main(int argc, char* argv[]) {
   //auto *stream(dmlc::Stream::Create(&auc_name[0], "w"));
   //ftrl_model.SaveAuc(stream, test_set);
 
-  std::string ftrl_weight = path + "ftrl_weight_" + std::string(argv[8]);
+  std::string ftrl_weight = test_path + "ftrl_weight_" + std::string(argv[9]);
   auto *streamb(dmlc::Stream::Create(&ftrl_weight[0], "w"));
   ftrl_model.Save(streamb);
 
