@@ -70,15 +70,16 @@ int main(int argc, char* argv[]) {
 
   rabit::TrackerPrintf("Initialization \n");
   int max_iter = atoi(argv[6]);
-  std::string train_path = argv[7];
-  std::string test_path = argv[8];
+  std::string train_path(argv[7]);
+  std::string test_path(argv[8]);
   std::string train_name = train_path + std::string(argv[9 + rabit::GetRank()]) + ".train";
   std::string test_name = test_path + std::string(argv[9 + rabit::GetRank()]) + ".test";
+
   ::admm::SampleSet train_set;
   CHECK(train_set.Initialize(train_name, 0, 1));
   ::admm::SampleSet test_set;
   CHECK(test_set.Initialize(test_name, 0, 1)); 
-
+  
   Metrics metrics;
   Model ftrl_model;
   ftrl_model.InitModel(atof(argv[1]),
@@ -102,12 +103,12 @@ int main(int argc, char* argv[]) {
     metrics.Auc(test_set, group_w, false);
   }
 
-  //rabit::TrackerPrintf("compute auc \n");
-  //std::string auc_name = path + "ftrl_auc" + "_" + std::string(argv[8]);
-  //auto *stream(dmlc::Stream::Create(&auc_name[0], "w"));
-  //ftrl_model.SaveAuc(stream, test_set);
+  rabit::TrackerPrintf("compute auc \n");
+  std::string auc_name = test_path + "ftrl_auc" + "_" + std::string(argv[9 + rabit::GetRank()]);
+  auto *stream(dmlc::Stream::Create(&auc_name[0], "w"));
+  ftrl_model.SaveAuc(stream, test_set);
 
-  std::string ftrl_weight = test_path + "ftrl_weight_" + std::string(argv[9]);
+  std::string ftrl_weight = test_path + "ftrl_weight_" + std::string(argv[9 + rabit::GetRank()]);
   auto *streamb(dmlc::Stream::Create(&ftrl_weight[0], "w"));
   ftrl_model.Save(streamb);
 
