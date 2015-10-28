@@ -76,7 +76,11 @@ Metrics::real_t Metrics::Auc(::admm::SampleSet& sample_set, std::vector<std::vec
   if (T)
     rabit::TrackerPrintf("The %d processor Train AUC is: %f \n", rabit::GetRank(), auc);
   else
-    rabit::TrackerPrintf("The %d processor Test AUC is: %f \n", rabit::GetRank(), auc);
+    rabit::TrackerPrintf("The %d processor Test AUC is: %f \n \
+                          The positive_sum is: %f \n \
+                          The total_p is: %f \n \
+                          The total_n is: %f \n",
+                          rabit::GetRank(), auc, positive_sum, total_p, total_n);
   return auc;
 }
 

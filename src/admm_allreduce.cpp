@@ -96,8 +96,8 @@ int main(int argc, char* argv[]) {
   std::string test_path = argv[8];
   std::string pid_name = argv[9 + rabit::GetRank()];
     
-  std::string train_name = train_path + pid_name + ".train";
-  std::string test_name = test_path + pid_name + ".test";
+  std::string train_name = train_path + pid_name; 
+  std::string test_name = test_path + pid_name; 
 
   ::admm::SampleSet train_set;
   CHECK(train_set.Initialize(train_name, 0, 1));
@@ -155,17 +155,17 @@ int main(int argc, char* argv[]) {
   //local_model.SaveAuc(streamb, test_set);
   //delete streamb;
 
-  std::string local_params = test_path + "local_params_" + pid_name;
-  auto *stream = dmlc::Stream::Create(&local_params[0], "w");
-  local_model.Save(stream);
-  delete stream;
+  //std::string local_params = test_path + "local_params_" + pid_name;
+  //auto *stream = dmlc::Stream::Create(&local_params[0], "w");
+  //local_model.Save(stream);
+  //delete stream;
 
-  if (rabit::GetRank() == 0) {
-    std::string global_file = test_path + "global_params";
-    auto *streama(dmlc::Stream::Create(&global_file[0], "w"));
-    global_model.Save(streama);
-    delete streama;
-  }
+  //if (rabit::GetRank() == 0) {
+  //  std::string global_file = test_path + "global_params";
+  //  auto *streama(dmlc::Stream::Create(&global_file[0], "w"));
+  //  global_model.Save(streama);
+  //  delete streama;
+  //}
 
   rabit::Finalize();
   return 0;

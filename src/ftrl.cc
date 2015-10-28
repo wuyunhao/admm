@@ -71,9 +71,6 @@ FtrlSolver::real_t FtrlSolver::Predict(FtrlSolver::Row& x, const std::vector<Ftr
     weight_[x.index[i]] = abs(mid_weight_[x.index[i]]) <= l_1_? 0:(sign*l_1_ - mid_weight_[x.index[i]])/((beta_ + sqrt(squared_sum_[x.index[i]]))/alpha_ + l_2_);
   }
   
-  //real_t* ptr_weight = &weight_[0];
-  //real_t* ptr_offset = &offset[0];
-  
   auto inner_product = x.SDot(&weight_[0], dim_) + x.SDot(&offset[0], dim_);
   
   return 1.0/(1 + exp(- std::max(std::min(inner_product, (float)35), (float)(-35)))); 

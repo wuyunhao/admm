@@ -30,7 +30,7 @@ check: all_test
 	LD_LIBRARY_PATH=./lib:/usr/local/lib ./all_test
 
 clean:
-	rm -rf $(LIBOBJECTS) $(TESTOBJECTS) all_test admm ftrl
+	rm -rf $(LIBOBJECTS) $(TESTOBJECTS) all_test admm ftrl eval
 
 lint:
 	python cpplint.py src/*.h src/*.cc src/*.cpp
@@ -39,6 +39,8 @@ program: $(LIBOBJECTS) src/admm_allreduce.cpp
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBOBJECTS) src/admm_allreduce.cpp -o admm $(LIBS)
 ftrl: $(LIBOBJECTS) src/ftrl_main.cpp
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBOBJECTS) src/ftrl_main.cpp -o ftrl $(LIBS)
+eval: $(LIBOBJECTS) src/eval_main.cpp
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBOBJECTS) src/eval_main.cpp -o eval $(LIBS)
 
 all_test: $(LIBOBJECTS) $(TESTOBJECTS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBOBJECTS) $(TESTOBJECTS) -o  all_test -g test/gtest-all.cc test/gtest_main.cc $(LIBS)
