@@ -68,17 +68,13 @@ int main(int argc, char* argv[]) {
   InitLogging(argv[0]);
   rabit::Init(argc, argv);
 
-  rabit::TrackerPrintf("Initialization \n");
   int max_iter = atoi(argv[6]);
   std::string train_path(argv[7]);
   std::string test_path(argv[8]);
-  std::string train_name = train_path + std::string(argv[9 + rabit::GetRank()]); 
-  std::string test_name = test_path + std::string(argv[9 + rabit::GetRank()]); 
+  std::string output_path(argv[9]);
+  std::string train_name = train_path + std::string(argv[10 + rabit::GetRank()]); 
+  std::string test_name = test_path + std::string(argv[10 + rabit::GetRank()]); 
 
-  ::admm::SampleSet train_set;
-  CHECK(train_set.Initialize(train_name, 0, 1));
-  ::admm::SampleSet test_set;
-  CHECK(test_set.Initialize(test_name, 0, 1)); 
   
   Metrics metrics;
   Model ftrl_model;
@@ -92,27 +88,35 @@ int main(int argc, char* argv[]) {
 
   rabit::TrackerPrintf("ftrl execution \n");
   for (int i = 0; i < max_iter; ++i) {
-    ftrl_model.ftrl_processor_.Run(train_set, offset, reg_offset);
     rabit::TrackerPrintf("%d th iteration: \n", i);
+    ::admm::SampleSet* train_set = new ::admm::SampleSet;
+    CHECK(train_set->Initialize(train_name, 0, 1));
+
+    ftrl_model.ftrl_processor_.Run(*train_set, offset, reg_offset);
 
     std::vector<std::vector<float>> group_w;
     group_w.push_back(ftrl_model.ftrl_processor_.weight_);
-    metrics.LogLoss(train_set, group_w, true);
-    metrics.Auc(train_set, group_w, true);
-    metrics.LogLoss(test_set, group_w, false);
-    metrics.Auc(test_set, group_w, false);
+    metrics.LogLoss(*train_set, group_w, true);
+    metrics.Auc(*train_set, group_w, true);
+    delete train_set;
+
+    ::admm::SampleSet* test_set = new ::admm::SampleSet;
+    CHECK(test_set->Initialize(test_name, 0, 1)); 
+    metrics.LogLoss(*test_set, group_w, false);
+    metrics.Auc(*test_set, group_w, false);
+    delete test_set;
   }
 
   //rabit::TrackerPrintf("compute auc \n");
-  //std::string auc_name = test_path + "ftrl_auc" + "_" + std::string(argv[9 + rabit::GetRank()]);
+  //std::string auc_name = output_path + "ftrl_auc" + "_" + std::string(argv[10 + rabit::GetRank()]);
   //auto *stream(dmlc::Stream::Create(&auc_name[0], "w"));
   //ftrl_model.SaveAuc(stream, test_set);
 
-  //std::string ftrl_weight = test_path + "ftrl_weight_" + std::string(argv[9 + rabit::GetRank()]);
-  //auto *streamb(dmlc::Stream::Create(&ftrl_weight[0], "w"));
-  //ftrl_model.Save(streamb);
+  std::string ftrl_weight = output_path + "ftrl_weight_" + std::string(argv[10 + rabit::GetRank()]);
+  auto *streamb(dmlc::Stream::Create(&ftrl_weight[0], "w"));
+  ftrl_model.Save(streamb);
 
-  //delete streamb;
+  delete streamb;
 
   rabit::Finalize();
   return 0;

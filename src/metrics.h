@@ -24,6 +24,11 @@ class Metrics {
    * \params labels the corresponding labels of ranks
    */
   real_t Auc(::admm::SampleSet& sample_set, std::vector<std::vector<real_t>>& weights, bool T);
+  real_t Auc(::admm::SampleSet& sample_set,
+             std::vector<std::vector<real_t>>& weight_a,
+             std::vector<std::vector<real_t>>& weight_b,
+             real_t ratio,
+             bool T); 
   /*!
    * \brief calculate logloss 
    * \params sample_set the sample set used

@@ -73,14 +73,13 @@ Metrics::real_t Metrics::Auc(::admm::SampleSet& sample_set, std::vector<std::vec
   }
 
   auto auc = positive_sum/(total_p*total_n) - (total_p + 1)/(2*total_n);
-  if (T)
+  if (T) {
     rabit::TrackerPrintf("The %d processor Train AUC is: %f \n", rabit::GetRank(), auc);
-  else
-    rabit::TrackerPrintf("The %d processor Test AUC is: %f \n \
-                          The positive_sum is: %f \n \
-                          The total_p is: %f \n \
-                          The total_n is: %f \n",
-                          rabit::GetRank(), auc, positive_sum, total_p, total_n);
+    rabit::TrackerPrintf("The %d processor Train PV is: %d \n", rabit::GetRank(), sorted_ranks.size());
+  } else {
+    rabit::TrackerPrintf("The %d processor Test AUC is: %f \n ", rabit::GetRank(), auc);
+    rabit::TrackerPrintf("The %d processor Test PV is: %d \n", rabit::GetRank(), sorted_ranks.size());
+  }
   return auc;
 }
 
@@ -105,4 +104,54 @@ Metrics::real_t Metrics::LogLoss(::admm::SampleSet& sample_set, std::vector<std:
   else 
     rabit::TrackerPrintf("The %d processor Test LogLoss is %f \n", rabit::GetRank(), sum/count);
   return sum/count;
+}
+
+Metrics::real_t Metrics::Auc(::admm::SampleSet& sample_set,
+                             std::vector<std::vector<Metrics::real_t>>& weight_a,
+                             std::vector<std::vector<Metrics::real_t>>& weight_b,
+                             Metrics::real_t ratio,
+                             bool T) {
+  std::vector<real_t> ranks;
+  std::vector<int> labels;
+
+  sample_set.Rewind();
+  while(sample_set.Next()) {
+    auto x = sample_set.GetData();
+    auto inner_product_a = x.SDot(&weight_a[0][0], weight_a[0].size());
+    auto inner_product_b = x.SDot(&weight_b[0][0], weight_b[0].size());
+    for (size_t i = 1; i < weight_a.size(); ++i) {
+      inner_product_a += x.SDot(&weight_a[i][0], weight_a[i].size());
+    }
+    for (size_t i = 1; i < weight_b.size(); ++i) {
+      inner_product_b += x.SDot(&weight_b[i][0], weight_b[i].size());
+    }
+    auto predict_a = 1.0f/(1 + exp(- std::max(std::min(inner_product_a, 35.0f), - 35.0f)));
+    auto predict_b = 1.0f/(1 + exp(- std::max(std::min(inner_product_b, 35.0f), - 35.0f)));
+    ranks.push_back(ratio * predict_a + (1 - ratio)* predict_b);
+    labels.push_back((int)x.label);
+  }
+
+  std::vector<real_t> sorted_ranks;
+  Sort(ranks, sorted_ranks);
+  real_t positive_sum = 0;
+  real_t total_p = 0;
+  real_t total_n = 0;
+  for (size_t i = 0; i < ranks.size(); ++i) {
+    if (labels[i] == 1) {
+      total_p++;
+      positive_sum += sorted_ranks[i];
+    } else {
+      total_n++;
+    }
+  }
+
+  auto auc = positive_sum/(total_p*total_n) - (total_p + 1)/(2*total_n);
+  if (T) {
+    rabit::TrackerPrintf("The %d processor Train AUC is: %f \n", rabit::GetRank(), auc);
+    rabit::TrackerPrintf("The %d processor Train PV is: %d \n", rabit::GetRank(), sorted_ranks.size());
+  } else {
+    rabit::TrackerPrintf("The %d processor Test AUC is: %f \n", rabit::GetRank(), auc);
+    rabit::TrackerPrintf("The %d processor Test PV is: %d \n", rabit::GetRank(), sorted_ranks.size());
+  }
+  return auc;
 }

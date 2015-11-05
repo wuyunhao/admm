@@ -58,13 +58,13 @@ void Worker::BaseUpdate(SampleSet& train_set, SampleSet& test_set, const AdmmCon
   for (auto i = 0u; i < ftrl_params.dim; ++i) {
     reg_offset[i] = admm_params.global_weights[i] - langr_vec_[i]/admm_params.step_size;
   }
-  //rabit::TrackerPrintf("base ftrl\n");
+  rabit::TrackerPrintf("base ftrl\n");
   for (int i = 0; i < 1; ++i) { 
     //set the ftrl initial solution
     ftrl_processor.Run(train_set, bias_vec_, reg_offset);
     base_vec_ = ftrl_processor.weight();
-    LogLoss(train_set, admm_params, true);
-    LogLoss(test_set, admm_params, false);
+    //LogLoss(train_set, admm_params, true);
+    //LogLoss(test_set, admm_params, false);
   }
   SaveFtrl(ftrl_processor.mid_weight_, ftrl_processor.squared_sum_);
   
@@ -82,13 +82,13 @@ void Worker::BiasUpdate(SampleSet& train_set, SampleSet& test_set, const AdmmCon
   //set the reg_offset vector
   std::vector<::ftrl::FtrlSolver::real_t> reg_offset;
 
-  //rabit::TrackerPrintf("bias ftrl\n");
+  rabit::TrackerPrintf("bias ftrl\n");
   for (int i = 0; i < 1; ++i) {
     //set the ftrl initial solution
     ftrl_processor.Run(train_set, base_vec_, reg_offset);
     bias_vec_ = ftrl_processor.weight();
-    LogLoss(train_set, admm_params, true);
-    LogLoss(test_set, admm_params, false);
+    //LogLoss(train_set, admm_params, true);
+    //LogLoss(test_set, admm_params, false);
   }
   SaveFtrl(ftrl_processor.mid_weight_, ftrl_processor.squared_sum_);
   
