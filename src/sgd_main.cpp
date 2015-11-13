@@ -4,12 +4,12 @@
 #include <dmlc/logging.h>
 #include <dmlc/io.h>
 #include "sample_set.h"
-#include "ftrl.h"
+#include "sgd.h"
 #include "config.h"
 #include "metrics.h"
 
 using namespace rabit;
-using namespace ftrl; 
+using namespace sgd; 
 using namespace dmlc;
 
 float Predict(dmlc::Row<std::size_t>& x, std::vector<float>& weight_vec) {
@@ -21,7 +21,7 @@ float Predict(dmlc::Row<std::size_t>& x, std::vector<float>& weight_vec) {
 
 class Model : public dmlc::Serializable {
   public:
-    FtrlSolver ftrl_processor_;
+    SgdSolver sgd_processor_;
     ::admm::FtrlConfig ftrl_params_;
 
     void Load(dmlc::Stream *fi) {
@@ -29,29 +29,12 @@ class Model : public dmlc::Serializable {
 
     void Save(dmlc::Stream *fo) const {
       dmlc::ostream os(fo);
-      std::vector<float> weights = ftrl_processor_.weight();
+      std::vector<float> weights = sgd_processor_.GetWeight();
       for (size_t i = 0; i < weights.size(); ++i) {
         os << weights[i] << ' ';
       }
     }
 
-    void SaveAuc(dmlc::Stream *fo, ::admm::SampleSet &sample_set) {
-      dmlc::ostream os(fo);
-      sample_set.Rewind();
-      while(sample_set.Next()) {
-        dmlc::Row<std::size_t> x = sample_set.GetData();
-        os << x.label << ' ';
-      }
-      os << '\n';
-
-      std::vector<float> weights = ftrl_processor_.weight();
-      sample_set.Rewind();
-      while(sample_set.Next()) {
-        dmlc::Row<std::size_t> x = sample_set.GetData();
-        auto predict = Predict(x, weights);
-        os << predict << ' ';
-      }
-    }
 
     void InitModel(float l_1,
                    float l_2,
@@ -59,7 +42,9 @@ class Model : public dmlc::Serializable {
                    float beta,
                    std::size_t dim) {
       ftrl_params_.Init(l_1, l_2, alpha, beta, dim); 
-      ftrl_processor_.Init(ftrl_params_);
+      std::vector<float> offset(dim, 0);
+      std::vector<float> reg_offset(dim, 0);
+      sgd_processor_.Init(ftrl_params_.dim, 0.01, ftrl_params_.l_2, offset, reg_offset);
     }
 }; 
 
@@ -77,25 +62,23 @@ int main(int argc, char* argv[]) {
 
   
   Metrics metrics;
-  Model ftrl_model;
-  ftrl_model.InitModel(atof(argv[1]),
+  Model sgd_model;
+  sgd_model.InitModel(atof(argv[1]),
                        atof(argv[2]),
                        atof(argv[3]),
                        atof(argv[4]),
                        atoi(argv[5]));
-  std::vector<float> offset;
-  std::vector<float> reg_offset;
 
-  rabit::TrackerPrintf("ftrl execution \n");
+  rabit::TrackerPrintf("sgd execution \n");
   for (int i = 0; i < max_iter; ++i) {
     rabit::TrackerPrintf("%d th iteration: \n", i);
     ::admm::SampleSet* train_set = new ::admm::SampleSet;
     CHECK(train_set->Initialize(train_name, 0, 1));
 
-    ftrl_model.ftrl_processor_.Run(*train_set, offset, reg_offset);
+    sgd_model.sgd_processor_.Run(*train_set);
 
     std::vector<std::vector<float>> group_w;
-    group_w.push_back(ftrl_model.ftrl_processor_.weight_);
+    group_w.push_back(sgd_model.sgd_processor_.GetWeight());
     metrics.LogLoss(*train_set, group_w, true);
     metrics.Auc(*train_set, group_w, true);
     delete train_set;
@@ -112,9 +95,9 @@ int main(int argc, char* argv[]) {
   //auto *stream(dmlc::Stream::Create(&auc_name[0], "w"));
   //ftrl_model.SaveAuc(stream, test_set);
 
-  std::string ftrl_weight = output_path + "ftrl_weight_" + std::string(argv[10 + rabit::GetRank()]);
+  std::string ftrl_weight = output_path + "sgd_weight_" + std::string(argv[10 + rabit::GetRank()]);
   auto *streamb(dmlc::Stream::Create(&ftrl_weight[0], "w"));
-  ftrl_model.Save(streamb);
+  sgd_model.Save(streamb);
 
   delete streamb;
 

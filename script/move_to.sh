@@ -1,3 +1,3 @@
 #!/bin/bash
 
-cp admm /data2/data
+cp $1 /data2/data

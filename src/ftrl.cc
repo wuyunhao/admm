@@ -12,7 +12,7 @@ FtrlSolver::FtrlSolver(FtrlSolver::real_t lambda_1,
                        FtrlSolver::real_t beta_init,
                        std::size_t dim_init)
     : l_1_(lambda_1), l_2_(lambda_2), alpha_(alpha_init),
-      beta_(beta_init), dim_(dim_init) {
+      beta_(beta_init), dim_(dim_init), ls_2_(0){
 
   weight_.resize(dim_);
   mid_weight_.resize(dim_);
@@ -34,6 +34,7 @@ FtrlSolver::~FtrlSolver() {
 void FtrlSolver::Init(::admm::FtrlConfig& params) {
   l_1_ = params.l_1;
   l_2_ = params.l_2;
+  ls_2_ = 0;
   alpha_ = params.alpha;
   beta_ = params.beta;
   dim_ = params.dim;
@@ -64,29 +65,28 @@ FtrlSolver::real_t FtrlSolver::Predict(FtrlSolver::Row& x) {
   return 1.0/(1 + exp(- std::max(std::min(inner_product, (float)35), (float)(-35)))); 
 }
 
-FtrlSolver::real_t FtrlSolver::Predict(FtrlSolver::Row& x, std::vector<FtrlSolver::real_t>& offset) {
+FtrlSolver::real_t FtrlSolver::Predict(FtrlSolver::Row& x, const std::vector<FtrlSolver::real_t>& offset) {
   for(auto i = 0u; i < x.length; ++i) {
     //LOG(INFO) << "x.index[" << i << "] = " << x.index[i] << "\n";
     real_t sign = mid_weight_[x.index[i]] < 0? -1:1;
     weight_[x.index[i]] = abs(mid_weight_[x.index[i]]) <= l_1_? 0:(sign*l_1_ - mid_weight_[x.index[i]])/((beta_ + sqrt(squared_sum_[x.index[i]]))/alpha_ + l_2_);
   }
   
-  real_t* ptr_weight = &weight_[0];
-  real_t* ptr_offset = &offset[0];
-  
-  auto inner_product = x.SDot(ptr_weight, dim_) + x.SDot(ptr_offset, dim_);
+  auto inner_product = x.SDot(&weight_[0], dim_) + x.SDot(&offset[0], dim_);
   
   return 1.0/(1 + exp(- std::max(std::min(inner_product, (float)35), (float)(-35)))); 
 }
 
-void FtrlSolver::Update(const FtrlSolver::Row& x, FtrlSolver::real_t predict) {
+void FtrlSolver::Update(FtrlSolver::real_t predict, const FtrlSolver::Row& x, const std::vector<FtrlSolver::real_t>& reg_offset) {
   int label = 0;
   //g[i] = (p - y)*x[i]
   if (x.label == 1) label = 1;
-  
-  auto loss = predict - label; 
+  auto pre_loss = predict - label;
   
   for(auto i = 0u; i < x.length; ++i) {
+    auto loss = pre_loss; 
+    if (reg_offset.size() != 0)
+      loss += ls_2_ * (weight_[x.index[i]] - reg_offset[x.index[i]]);
     auto sigma = (sqrt(squared_sum_[x.index[i]] + loss*loss) - sqrt(squared_sum_[x.index[i]]))/alpha_;
     //z[i] = z[i] + g[i] - sigma*w[i]
     mid_weight_[x.index[i]] += loss - sigma * weight_[x.index[i]];
@@ -99,25 +99,26 @@ std::vector<FtrlSolver::real_t> FtrlSolver::weight() const {
   return weight_;
 }
 
-void FtrlSolver::Assign(const std::vector<FtrlSolver::real_t>& x) {
-  dim_ = x.size();
-  weight_.resize(dim_);
-  LOG(INFO) << "The dim of weight is " << dim_ << " now in ftrl process." << "\n";
+void FtrlSolver::Assign(const std::vector<FtrlSolver::real_t>& x, const std::vector<FtrlSolver::real_t>& y) {
   for(auto i = 0u;  i < x.size(); ++i) {
-    weight_[i] = x[i];
+    mid_weight_[i] = x[i];
+    squared_sum_[i] = y[i];
   }
 }
 
-void FtrlSolver::Run(FtrlSolver::SampleSet& sample_set, std::vector<FtrlSolver::real_t>& offset) {
+void FtrlSolver::Run(FtrlSolver::SampleSet& sample_set, const std::vector<FtrlSolver::real_t>& offset, const std::vector<FtrlSolver::real_t>& reg_offset) {
+  ls_2_ = l_2_;
+  l_2_ = 0;
+
   sample_set.Rewind();
   while(sample_set.Next()) {
-  	Row x = sample_set.GetData();
+    Row x = sample_set.GetData();
     if(offset.size() == 0) {
       auto predict = Predict(x);
-      Update(x,predict);
+      Update(predict, x, reg_offset);
     } else {
       auto predict = Predict(x,offset);
-      Update(x,predict);
+      Update(predict, x, reg_offset);
     }
   }
 }

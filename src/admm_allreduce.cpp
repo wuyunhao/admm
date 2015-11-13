@@ -9,16 +9,10 @@
 #include "workers.h"
 #include "master.h"
 #include "config.h"
+#include "metrics.h"
 
 using namespace dmlc;
 using namespace rabit;
-
-float Predict(dmlc::Row<std::size_t>& x, std::vector<float>& weight_vec) {
-  auto* ptr_weight = &weight_vec[0];
-  auto inner_product = x.SDot(ptr_weight, weight_vec.size());
-
-  return 1.0/(1 + exp(- std::max(std::min(inner_product, (float)35), (float)(-35)))); 
-}
 
 class LocalModel : public dmlc::Serializable {
   public:
@@ -26,6 +20,7 @@ class LocalModel : public dmlc::Serializable {
 
    void Load(dmlc::Stream *fi) {
    }
+
    void Save(dmlc::Stream *fo) const {
      dmlc::ostream os(fo);
      for (size_t i = 0; i < worker_processor_.base_vec_.size(); ++i) {
@@ -35,28 +30,8 @@ class LocalModel : public dmlc::Serializable {
      for (size_t i = 0; i < worker_processor_.bias_vec_.size(); ++i) {
        os << worker_processor_.bias_vec_[i] << ' ';
      }
-     os << '\n';
-     for (size_t i = 0; i < worker_processor_.langr_vec_.size(); ++i) {
-       os << worker_processor_.langr_vec_[i] << ' ';
-     }
+   }
 
-   }
-   void LogLoss(::admm::SampleSet &sample_set) {
-     std::vector<float> final_weights(worker_processor_.base_vec_.size());
-     for (size_t i = 0; i < final_weights.size(); ++i) {
-        final_weights[i] = worker_processor_.base_vec_[i] + worker_processor_.bias_vec_[i];
-     }
-     float sum = 0.0;
-     int count = 0;
-     sample_set.Rewind();
-     while(sample_set.Next()) {
-       dmlc::Row<std::size_t> x = sample_set.GetData();
-       auto predict = Predict(x,  final_weights);
-       sum += (int)x.label == 1? -log(predict): -log(1.0f - predict);
-       count++;
-     }
-     rabit::TrackerPrintf("[INFO] LOGLOSS is %f\n", sum/count);
-   }
    void SaveAuc(dmlc::Stream *fo, ::admm::SampleSet &sample_set) {
      dmlc::ostream os(fo);
      sample_set.Rewind();
@@ -66,18 +41,15 @@ class LocalModel : public dmlc::Serializable {
      }
      os << '\n';
 
-     std::vector<float> final_weights(worker_processor_.base_vec_.size());
-     for (size_t i = 0; i < final_weights.size(); ++i) {
-        final_weights[i] = worker_processor_.base_vec_[i] + worker_processor_.bias_vec_[i];
-     }
-
      sample_set.Rewind();
      while(sample_set.Next()) {
        dmlc::Row<std::size_t> x = sample_set.GetData();
-       auto predict = Predict(x, final_weights);
+       auto inner_product = x.SDot(&worker_processor_.bias_vec_[0], worker_processor_.bias_vec_.size()) + x.SDot(&worker_processor_.base_vec_[0], worker_processor_.base_vec_.size());
+       auto predict = 1.0f/(1 + exp(- std::max(std::min(inner_product, (float)35), (float)(-35))));
        os << predict << ' ';
      }
    }
+
    void InitModel(std::size_t fdim) {
      worker_processor_.InitWorker(fdim);
    }
@@ -114,24 +86,17 @@ int main(int argc, char* argv[]) {
   
   LocalModel local_model;
   GlobalModel global_model;
-  ::admm::SampleSet train_set;
+  Metrics metrics;
 
-  std::string path = argv[6];
-  std::string pid_name(5, '0'); 
-  if (argc > 8) {
-    pid_name = argv[8];
-  } else {
-    sprintf(&pid_name[0], "%05d", rabit::GetRank() + 1);
-  }
-  std::string train_name = path + pid_name + ".train";
-  std::string test_name = path + pid_name + ".test";
-  CHECK(train_set.Initialize(train_name, 0, 1));
+  int max_iter = atoi(argv[6]);
+  std::string train_path = argv[7];
+  std::string test_path = argv[8];
+  std::string output_path = argv[9];
+  std::string pid_name = argv[10 + rabit::GetRank()];
+    
+  std::string train_name = train_path + pid_name; 
+  std::string test_name = test_path + pid_name; 
 
-  //get the test set
-  ::admm::SampleSet test_set;
-  CHECK(test_set.Initialize(test_name, 0, 1)); 
-
-  int max_iter = atoi(argv[7]);
   int iter = rabit::LoadCheckPoint(&global_model);
   if (iter == 0) {
     global_model.InitModel(atof(argv[1]),
@@ -141,7 +106,6 @@ int main(int argc, char* argv[]) {
                            atoi(argv[5]));
     local_model.InitModel(atoi(argv[5]));
   }
-
   rabit::TrackerPrintf("Initialization finished\n");
 
   std::size_t dim = global_model.admm_params_.dim;
@@ -151,47 +115,59 @@ int main(int argc, char* argv[]) {
 
   for (int r = iter; r < max_iter; ++r) {
     std::fill(tmp.begin(), tmp.end(), 0.0f);   
+    ::admm::SampleSet* train_set = new ::admm::SampleSet;
+    CHECK(train_set->Initialize(train_name, 0, 1));
+    ::admm::SampleSet* test_set = new ::admm::SampleSet; 
 
+    rabit::TrackerPrintf("start allreduce \n");
     auto lazy_ftrl = [&]()
     {
-      local_model.worker_processor_.BiasUpdate(train_set, global_model.admm_params_);
-      local_model.worker_processor_.BaseUpdate(train_set, global_model.admm_params_);
+      //local_model.worker_processor_.BiasUpdate(*train_set, *test_set, global_model.admm_params_);
+      local_model.worker_processor_.BaseUpdate(*train_set, *test_set, global_model.admm_params_);
       local_model.worker_processor_.GetWeights(global_model.admm_params_, tmp);
     };
-
-    rabit::TrackerPrintf("begin allreduce \n");
-
-    LOG(INFO) << "the " << rabit::GetRank() << " reduce begins " << rabit::VersionNumber() << "\n";
     rabit::Allreduce<op::Sum>(&tmp[0], dim, lazy_ftrl);
-    LOG(INFO) << "the " << rabit::GetRank() << " reduce ends " << rabit::VersionNumber() << "\n";
 
-    rabit::TrackerPrintf("allreduce finished\n");
 
     master_processor.GlobalUpdate(tmp, global_model.admm_params_, rabit::GetWorldSize());
-
-    local_model.worker_processor_.LangrangeUpdate(train_set, global_model.admm_params_);
+    local_model.worker_processor_.LangrangeUpdate(*train_set, global_model.admm_params_);
     rabit::LazyCheckPoint(&global_model);
-    local_model.LogLoss(train_set);
+
+
+    std::vector<std::vector<float>> group_w;
+    group_w.push_back(local_model.worker_processor_.base_vec_);
+    //group_w.push_back(local_model.worker_processor_.bias_vec_);
+
+    metrics.LogLoss(*train_set, group_w, true);
+    metrics.Auc(*train_set, group_w, true);
+    delete train_set;
+
+    CHECK(test_set->Initialize(test_name, 0, 1)); 
+    metrics.LogLoss(*test_set, group_w, false);
+    metrics.Auc(*test_set, group_w, false);
+    delete test_set;
+
     if (rabit::GetRank() == 0) {
       rabit::TrackerPrintf("Finish %d-th iteration\n", r);
     }
-    std::string local_auc = path + "admm_auc_" + pid_name + "_" + std::to_string(r); 
-    auto *streamb(dmlc::Stream::Create(&local_auc[0], "w"));
-    local_model.SaveAuc(streamb, train_set);
-    delete streamb;
   }
+  //std::string local_auc = dest_path + "admm_train_auc_" + pid_name;
+  //auto *streamb(dmlc::Stream::Create(&local_auc[0], "w"));
+  //local_model.SaveAuc(streamb, test_set);
+  //delete streamb;
 
-  std::string local_params = path + "local_params_" + pid_name;
+  std::string local_params = output_path + "admm_weight_" + pid_name;
   auto *stream = dmlc::Stream::Create(&local_params[0], "w");
   local_model.Save(stream);
   delete stream;
 
-  if (rabit::GetRank() == 0) {
-    std::string global_file = path + "global_params";
-    auto *streama(dmlc::Stream::Create(&global_file[0], "w"));
-    global_model.Save(streama);
-    delete streama;
-  }
+  //if (rabit::GetRank() == 0) {
+  std::string global_file = output_path + "global_params" + pid_name;
+  auto *streama(dmlc::Stream::Create(&global_file[0], "w"));
+  global_model.Save(streama);
+  delete streama;
+  //}
 
   rabit::Finalize();
+  return 0;
 }
