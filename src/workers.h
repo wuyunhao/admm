@@ -42,10 +42,6 @@ class Worker {
    * \brief compute the logloss for the current weights solution;
    */
   void LogLoss(SampleSet& sample_set, const AdmmConfig& admm_params, bool T);
-  /*!
-   * \brief save ftrl parameters
-   */
-  void SaveFtrl(const std::vector<real_t>& x, const std::vector<real_t>& y);
  //private:
   /*!
    * \brief worker's ID
@@ -66,9 +62,13 @@ class Worker {
   /*!
    * \brief the tmp vectors for saving ftrl 
    */
-  std::vector<real_t> save_mid_weights_;
+  std::vector<real_t> bias_mid_weights_;
 
-  std::vector<real_t> save_squared_sum_;
+  std::vector<real_t> bias_squared_sum_;
+
+  std::vector<real_t> base_mid_weights_;
+
+  std::vector<real_t> base_squared_sum_;
 };
 
 } // namespace admm

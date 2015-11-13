@@ -30,10 +30,6 @@ class LocalModel : public dmlc::Serializable {
      for (size_t i = 0; i < worker_processor_.bias_vec_.size(); ++i) {
        os << worker_processor_.bias_vec_[i] << ' ';
      }
-     os << '\n';
-     for (size_t i = 0; i < worker_processor_.langr_vec_.size(); ++i) {
-       os << worker_processor_.langr_vec_[i] << ' ';
-     }
    }
 
    void SaveAuc(dmlc::Stream *fo, ::admm::SampleSet &sample_set) {
@@ -126,7 +122,7 @@ int main(int argc, char* argv[]) {
     rabit::TrackerPrintf("start allreduce \n");
     auto lazy_ftrl = [&]()
     {
-      local_model.worker_processor_.BiasUpdate(*train_set, *test_set, global_model.admm_params_);
+      //local_model.worker_processor_.BiasUpdate(*train_set, *test_set, global_model.admm_params_);
       local_model.worker_processor_.BaseUpdate(*train_set, *test_set, global_model.admm_params_);
       local_model.worker_processor_.GetWeights(global_model.admm_params_, tmp);
     };
@@ -140,7 +136,7 @@ int main(int argc, char* argv[]) {
 
     std::vector<std::vector<float>> group_w;
     group_w.push_back(local_model.worker_processor_.base_vec_);
-    group_w.push_back(local_model.worker_processor_.bias_vec_);
+    //group_w.push_back(local_model.worker_processor_.bias_vec_);
 
     metrics.LogLoss(*train_set, group_w, true);
     metrics.Auc(*train_set, group_w, true);
@@ -166,10 +162,10 @@ int main(int argc, char* argv[]) {
   delete stream;
 
   //if (rabit::GetRank() == 0) {
-  //  std::string global_file = test_path + "global_params";
-  //  auto *streama(dmlc::Stream::Create(&global_file[0], "w"));
-  //  global_model.Save(streama);
-  //  delete streama;
+  std::string global_file = output_path + "global_params" + pid_name;
+  auto *streama(dmlc::Stream::Create(&global_file[0], "w"));
+  global_model.Save(streama);
+  delete streama;
   //}
 
   rabit::Finalize();

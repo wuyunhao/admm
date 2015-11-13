@@ -125,9 +125,9 @@ Metrics::real_t Metrics::Auc(::admm::SampleSet& sample_set,
     for (size_t i = 1; i < weight_b.size(); ++i) {
       inner_product_b += x.SDot(&weight_b[i][0], weight_b[i].size());
     }
-    auto predict_a = 1.0f/(1 + exp(- std::max(std::min(inner_product_a, 35.0f), - 35.0f)));
-    auto predict_b = 1.0f/(1 + exp(- std::max(std::min(inner_product_b, 35.0f), - 35.0f)));
-    ranks.push_back(ratio * predict_a + (1 - ratio)* predict_b);
+    auto inner_product = ratio * inner_product_a + (1 - ratio) * inner_product_b;
+    auto predict = 1.0f/(1 + exp(- std::max(std::min(inner_product, 35.0f), - 35.0f)));
+    ranks.push_back(predict);
     labels.push_back((int)x.label);
   }
 
