@@ -41,6 +41,11 @@ class SampleSet {
    */
   void Rewind();
 
+  /*!
+   * \brief Preprocess the data
+   */
+  ::dmlc::Row<SampleSet::IndexType> TranslateData(const ::dmlc::Row<SampleSet::IndexType>& x);
+
   SampleSet();
   virtual ~SampleSet();
  protected:

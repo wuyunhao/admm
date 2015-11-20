@@ -84,15 +84,16 @@ int main(int argc, char* argv[]) {
                        atof(argv[4]),
                        atoi(argv[5]));
   std::vector<float> offset;
-  std::vector<float> reg_offset;
+  std::vector<float> reg_offset(atoi(argv[5]), 0);
 
   rabit::TrackerPrintf("ftrl execution \n");
   for (int i = 0; i < max_iter; ++i) {
     rabit::TrackerPrintf("%d th iteration: \n", i);
     ::admm::SampleSet* train_set = new ::admm::SampleSet;
+    ::admm::SampleSet* test_set = new ::admm::SampleSet;
     CHECK(train_set->Initialize(train_name, 0, 1));
 
-    ftrl_model.ftrl_processor_.Run(*train_set, offset, reg_offset);
+    ftrl_model.ftrl_processor_.Run(*train_set, *test_set, offset, reg_offset);
 
     std::vector<std::vector<float>> group_w;
     group_w.push_back(ftrl_model.ftrl_processor_.weight_);
@@ -100,7 +101,6 @@ int main(int argc, char* argv[]) {
     metrics.Auc(*train_set, group_w, true);
     delete train_set;
 
-    ::admm::SampleSet* test_set = new ::admm::SampleSet;
     CHECK(test_set->Initialize(test_name, 0, 1)); 
     metrics.LogLoss(*test_set, group_w, false);
     metrics.Auc(*test_set, group_w, false);

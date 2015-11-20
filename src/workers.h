@@ -33,7 +33,7 @@ class Worker {
   /*!
    * \brief update the langrange coefficients of the single model.
    */
-  void LangrangeUpdate(const SampleSet& sample_set, const AdmmConfig& admm_params);
+  void LangrangeUpdate(const AdmmConfig& admm_params);
   /*!
    * \brief return the final base weights and langranges of the single model
    */
@@ -59,16 +59,6 @@ class Worker {
    * \brief the langrange coefficients
    */
   std::vector<real_t> langr_vec_;
-  /*!
-   * \brief the tmp vectors for saving ftrl 
-   */
-  std::vector<real_t> bias_mid_weights_;
-
-  std::vector<real_t> bias_squared_sum_;
-
-  std::vector<real_t> base_mid_weights_;
-
-  std::vector<real_t> base_squared_sum_;
 };
 
 } // namespace admm

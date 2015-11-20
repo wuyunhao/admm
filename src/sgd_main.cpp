@@ -90,11 +90,6 @@ int main(int argc, char* argv[]) {
     delete test_set;
   }
 
-  //rabit::TrackerPrintf("compute auc \n");
-  //std::string auc_name = output_path + "ftrl_auc" + "_" + std::string(argv[10 + rabit::GetRank()]);
-  //auto *stream(dmlc::Stream::Create(&auc_name[0], "w"));
-  //ftrl_model.SaveAuc(stream, test_set);
-
   std::string ftrl_weight = output_path + "sgd_weight_" + std::string(argv[10 + rabit::GetRank()]);
   auto *streamb(dmlc::Stream::Create(&ftrl_weight[0], "w"));
   sgd_model.Save(streamb);

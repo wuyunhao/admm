@@ -48,7 +48,9 @@ Metrics::real_t Metrics::Auc(::admm::SampleSet& sample_set, std::vector<std::vec
 
   sample_set.Rewind();
   while(sample_set.Next()) {
-    auto x = sample_set.GetData();
+    auto y = sample_set.GetData();
+    auto x = sample_set.TranslateData(y);
+
     auto inner_product = x.SDot(&weights[0][0], weights[0].size());
     for (size_t i = 1; i < weights.size(); ++i) {
       inner_product += x.SDot(&weights[i][0], weights[i].size());
@@ -56,6 +58,9 @@ Metrics::real_t Metrics::Auc(::admm::SampleSet& sample_set, std::vector<std::vec
     auto predict = 1.0f/(1 + exp(- std::max(std::min(inner_product, 35.0f), - 35.0f)));
     ranks.push_back(predict);
     labels.push_back((int)x.label);
+    
+    delete x.index;
+    delete x.value;
   }
 
   std::vector<real_t> sorted_ranks;
@@ -89,14 +94,19 @@ Metrics::real_t Metrics::LogLoss(::admm::SampleSet& sample_set, std::vector<std:
 
   sample_set.Rewind();
   while(sample_set.Next()) {
-    ::dmlc::Row<std::size_t> x = sample_set.GetData();
+    ::dmlc::Row<std::size_t> y = sample_set.GetData();
+    auto x = sample_set.TranslateData(y);
+
     auto inner_product = x.SDot(&weights[0][0], weights[0].size());
     for (size_t i = 1; i < weights.size(); ++i) {
       inner_product += x.SDot(&weights[i][0], weights[i].size());
     }
     auto predict = 1.0f/(1 + exp(- std::max(std::min(inner_product, (float)35), (float)(-35))));
-    sum += (int)x.label == 1? -log(predict): -log(1 - predict);
+    sum += x.label > 0? -log(predict): -log(1 - predict);
     count++;
+    
+    delete x.index;
+    delete x.value;
   }
   
   if (T) 

@@ -41,13 +41,42 @@ bool SampleSet::Next() {
 
 ::dmlc::Row<SampleSet::IndexType> SampleSet::GetData() {
   //LOG(INFO) << "Getting data, index: " << current_index_ << ", blocksize " << rbiter_->Value().size;
-  return rbiter_->Value()[current_index_];
+  auto x = rbiter_->Value()[current_index_];
+  return x; 
 }
 
 void SampleSet::Rewind() {
   rbiter_->BeforeFirst();
   current_index_ = -1;
   rb_size_ = -1;
+}
+
+::dmlc::Row<SampleSet::IndexType> SampleSet::TranslateData(const ::dmlc::Row<SampleSet::IndexType>& x) {
+  ::dmlc::Row<IndexType> new_x;
+  new_x.label = x.label;
+  new_x.weight = x.weight;
+  new_x.length = 1;
+  for (size_t i = 0; i < x.length; ++i) {
+    if (x.index[i] != 0)
+      (new_x.length)++;
+  }
+  IndexType* new_x_index = new IndexType[new_x.length];
+  float* new_x_value = new float[new_x.length];
+  
+  new_x_index[0] = 0;
+  new_x_value[0] = 1;
+  int j = 1;
+  for (size_t i = 0; i < x.length; ++i) {
+    if (x.index[i] != 0) {
+      new_x_index[j] = x.index[i];
+      new_x_value[j] = x.value[i];
+      j++;
+    }
+  }
+  new_x.index = new_x_index;
+  new_x.value = new_x_value;
+  return new_x;
+
 }
 
 }  // namespace admm
