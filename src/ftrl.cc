@@ -14,7 +14,7 @@ FtrlSolver::FtrlSolver(FtrlSolver::real_t lambda_1,
                        FtrlSolver::real_t beta_init,
                        std::size_t dim_init)
     : l_1_(lambda_1), l_2_(lambda_2), alpha_(alpha_init),
-      beta_(beta_init), dim_(dim_init), ls_2_(0){
+      beta_(beta_init), dim_(dim_init){
 
   weight_.resize(dim_);
   mid_weight_.resize(dim_);
@@ -36,7 +36,6 @@ FtrlSolver::~FtrlSolver() {
 void FtrlSolver::Init(::admm::FtrlConfig& params) {
   l_1_ = params.l_1;
   l_2_ = params.l_2;
-  ls_2_ = 0;
   alpha_ = params.alpha;
   beta_ = params.beta;
   dim_ = params.dim;
@@ -106,10 +105,20 @@ void FtrlSolver::Run(FtrlSolver::SampleSet& train_set,
 
   train_set.Rewind();
   while(train_set.Next()) {
-    Row x = train_set.GetData();
+    Row y = train_set.GetData();
+    auto x = train_set.TranslateData(y);
 
     auto predict = Predict(x, offset, reg_offset);
     Update(predict, x, reg_offset);
+
+    delete x.index;
+    delete x.value;
   }
+
+  Row last = train_set.TranslateData(train_set.GetLastData());
+  Predict(last, offset, reg_offset);
+  delete last.index;
+  delete last.value;
+
 }
 } // namespace ftrl

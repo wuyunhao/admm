@@ -100,9 +100,5 @@ class FtrlSolver {
    * \brief the dimension of the weights
    */
   std::size_t dim_;
-  /*!
-   * \brief the addition in loss function 
-   */
-  real_t ls_2_;
 };
 } // namespace ftrl

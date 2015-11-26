@@ -51,6 +51,17 @@ void SampleSet::Rewind() {
   rb_size_ = -1;
 }
 
+::dmlc::Row<SampleSet::IndexType> SampleSet::GetLastData() {
+  if (current_index_ >= 0 && current_index_ == rb_size_) {
+    return rbiter_->Value()[current_index_ - 1];
+  }
+  else {
+    LOG(ERROR) << "failed to get the last data. ";
+    ::dmlc::Row<IndexType> last;
+    return last;
+  }
+}
+
 ::dmlc::Row<SampleSet::IndexType> SampleSet::TranslateData(const ::dmlc::Row<SampleSet::IndexType>& x) {
   ::dmlc::Row<IndexType> new_x;
   new_x.label = x.label;

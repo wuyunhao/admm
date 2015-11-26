@@ -18,7 +18,8 @@ LIBOBJECTS = src/sample_set.o \
 			 src/workers.o \
 			 src/master.o \
 			 src/metrics.o \
-			 src/sgd.o
+			 src/sgd.o \
+			 src/arg_parser.o
 
 TESTS = test/ftrl_test.cc \
 		test/worker_test.cc

@@ -44,7 +44,11 @@ class SampleSet {
   /*!
    * \brief Preprocess the data
    */
-  ::dmlc::Row<SampleSet::IndexType> TranslateData(const ::dmlc::Row<SampleSet::IndexType>& x);
+  ::dmlc::Row<IndexType> TranslateData(const ::dmlc::Row<SampleSet::IndexType>& x);
+  /*!
+   * \brief Get the last data
+   */
+  ::dmlc::Row<IndexType> GetLastData();
 
   SampleSet();
   virtual ~SampleSet();
