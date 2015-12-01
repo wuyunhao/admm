@@ -72,28 +72,31 @@ int main(int argc, char* argv[]) {
 
   int max_iter = ftrl_model.ftrl_params_.passes;
   std::string train_name = ftrl_model.ftrl_params_.train_path + std::string(argv[2 + rabit::GetRank()]); 
-  std::string test_name = ftrl_model.ftrl_params_.test_path + std::string(argv[2 + rabit::GetRank()]); 
+  std::string test_name = ftrl_model.ftrl_params_.test_path + std::string(argv[2 + rabit::GetRank()]);
 
-  
   size_t dim = ftrl_model.ftrl_params_.dim;
+  int num_part = 3;// ftrl_model.ftrl_params_.num_part;
   std::vector<float> offset(dim, 0);
   std::vector<float> reg_offset(dim, 0);
 
   rabit::TrackerPrintf("ftrl execution \n");
   for (int i = 0; i < max_iter; ++i) {
-    rabit::TrackerPrintf("%d th iteration: \n", i);
     ::admm::SampleSet* train_set = new ::admm::SampleSet;
     ::admm::SampleSet* test_set = new ::admm::SampleSet;
-    CHECK(train_set->Initialize(train_name, 0, 1));
-
-    ftrl_model.ftrl_processor_.Run(*train_set, *test_set, offset, reg_offset);
-
+    for (int part = 0; part < num_part; part++) {
+      CHECK(train_set->Initialize(train_name, part, num_part));
+      rabit::TrackerPrintf("%d th iteration: \n", i);
+  
+      ftrl_model.ftrl_processor_.Run(*train_set, *test_set, offset, reg_offset);
+  
+      //std::vector<std::vector<float>> group_w;
+      //group_w.push_back(ftrl_model.ftrl_processor_.weight_);
+      //metrics.LogLoss(*train_set, group_w, true);
+      //metrics.Auc(*train_set, group_w, true);
+    }
+    delete train_set;
     std::vector<std::vector<float>> group_w;
     group_w.push_back(ftrl_model.ftrl_processor_.weight_);
-    metrics.LogLoss(*train_set, group_w, true);
-    metrics.Auc(*train_set, group_w, true);
-    delete train_set;
-
     CHECK(test_set->Initialize(test_name, 0, 1)); 
     metrics.LogLoss(*test_set, group_w, false);
     metrics.Auc(*test_set, group_w, false);

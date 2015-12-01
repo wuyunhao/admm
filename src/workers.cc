@@ -44,51 +44,51 @@ Worker::~Worker() {
 
 void Worker::BaseUpdate(SampleSet& train_set, SampleSet& test_set, const AdmmConfig& admm_params) {
   FtrlConfig ftrl_params(admm_params);
-  ftrl_params.l_2 = admm_params.step_size;
+  ftrl_params.l_2 = 200;
   ftrl_params.l_1 = 1;
   
   //set the reg_offset vector
   std::vector<::ftrl::FtrlSolver::real_t> reg_offset(ftrl_params.dim, 0);
   for (auto i = 0u; i < ftrl_params.dim; ++i) {
-    reg_offset[i] = admm_params.global_weights[i] - langr_vec_[i]/admm_params.step_size;
+    reg_offset[i] = admm_params.global_weights[i] ;//- langr_vec_[i]/admm_params.step_size;
   }
 
-  //::ftrl::FtrlSolver ftrl_processor;
-  //ftrl_processor.Init(ftrl_params);
+  ::ftrl::FtrlSolver ftrl_processor;
+  ftrl_processor.Init(ftrl_params);
   
-  ::sgd::SgdSolver sgd_processor;
-  sgd_processor.Init(ftrl_params.dim, 0.01, ftrl_params.l_2, bias_vec_, reg_offset);
+  //::sgd::SgdSolver sgd_processor;
+  //sgd_processor.Init(ftrl_params.dim, 0.01, ftrl_params.l_2, bias_vec_, reg_offset);
 
   rabit::TrackerPrintf("base ftrl\n");
   for (int i = 0; i < 1; ++i) { 
     //set the ftrl initial solution
-    //ftrl_processor.Run(train_set, test_set, bias_vec_, reg_offset);
-    sgd_processor.Run(train_set);
-    base_vec_ = sgd_processor.GetWeight();
+    ftrl_processor.Run(train_set, test_set, bias_vec_, reg_offset);
+    //sgd_processor.Run(train_set);
+    base_vec_ = ftrl_processor.weight();
   }
 
 }
 
 void Worker::BiasUpdate(SampleSet& train_set, SampleSet& test_set, const AdmmConfig& admm_params) {
   FtrlConfig ftrl_params(admm_params);
-  ftrl_params.l_2 = admm_params.global_var;
-  ftrl_params.l_1 = 1;// admm_params.bias_var;
+  ftrl_params.l_2 = 200;
+  ftrl_params.l_1 = 1000;// admm_params.bias_var;
   
   //set the reg_offset vector
   std::vector<::ftrl::FtrlSolver::real_t> reg_offset(ftrl_params.dim, 0);
   
-  //::ftrl::FtrlSolver ftrl_processor;
-  //ftrl_processor.Init(ftrl_params);
+  ::ftrl::FtrlSolver ftrl_processor;
+  ftrl_processor.Init(ftrl_params);
 
-  ::sgd::SgdSolver sgd_processor;
-  sgd_processor.Init(ftrl_params.dim, 0.01, ftrl_params.l_2, base_vec_, reg_offset);
+  //::sgd::SgdSolver sgd_processor;
+  //sgd_processor.Init(ftrl_params.dim, 0.01, ftrl_params.l_2, base_vec_, reg_offset);
 
   rabit::TrackerPrintf("bias ftrl\n");
   for (int i = 0; i < 1; ++i) {
     //set the ftrl initial solution
-    //ftrl_processor.Run(train_set, test_set, base_vec_, reg_offset);
-    sgd_processor.Run(train_set);
-    bias_vec_ = sgd_processor.GetWeight();
+    ftrl_processor.Run(train_set, test_set, base_vec_, reg_offset);
+    //sgd_processor.Run(train_set);
+    bias_vec_ = ftrl_processor.weight();
   }
   
 }

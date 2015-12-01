@@ -63,7 +63,7 @@ FtrlSolver::real_t FtrlSolver::Predict(FtrlSolver::Row& x,
     if (sign * mid_weight_[x.index[i]] <= l_1_)
       weight_[x.index[i]] = 0;
     else
-      weight_[x.index[i]] = (sign * l_1_ - mid_weight_[x.index[i]] + l_2_ * reg_offset[x.index[i]]) / ((beta_ + sqrt(squared_sum_[x.index[i]])) / alpha_ + l_2_);
+      weight_[x.index[i]] = (sign * 1 - mid_weight_[x.index[i]] + l_2_ * reg_offset[x.index[i]]) / ((beta_ + sqrt(squared_sum_[x.index[i]])) / alpha_ + l_2_);
   }
   
   auto inner_product = x.SDot(&weight_[0], dim_) + x.SDot(&offset[0], dim_);
