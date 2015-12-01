@@ -20,25 +20,17 @@ class AdmmConfig {
   ~AdmmConfig() {
   }
   
-  void Init(real_t global_var_init,
-            real_t bias_var_init,
-            real_t step_size_init,
-            real_t alpha_init,
-            std::size_t dim_init) {
-    global_var = global_var_init;
-    bias_var = bias_var_init;
-    step_size = step_size_init;
-    ftrl_alpha = alpha_init;
-    dim = dim_init; 
-    global_weights.resize(dim);
-    std::fill(global_weights.begin(), global_weights.end(), 0.0f);
-  }
   real_t step_size;
   real_t global_var;
   real_t bias_var;
   real_t ftrl_alpha;
   std::size_t dim;
+  int passes;
   std::vector<real_t> global_weights;
+
+  std::string train_path;
+  std::string test_path;
+  std::string output_path;
 };
 
 class FtrlConfig {
@@ -53,22 +45,14 @@ class FtrlConfig {
   ~FtrlConfig() {
   }
 
-  void Init(real_t l_1_init,
-            real_t l_2_init,
-            real_t alpha_init,
-            real_t beta_init,
-            std::size_t dim_init) {
-    l_1 = l_1_init;
-    l_2 = l_2_init;
-    alpha = alpha_init;
-    beta = beta_init;
-    dim = dim_init;
-  }
-  
   real_t alpha;
   real_t beta;
   real_t l_1;
   real_t l_2;
   std::size_t dim;
+  int passes;
+  std::string train_path;
+  std::string test_path;
+  std::string output_path;
 };
 } // namespace admm

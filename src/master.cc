@@ -14,7 +14,7 @@ bool Master::GlobalUpdate(const std::vector<Master::real_t>& workers, AdmmConfig
     //} else {
     //  admm_params.global_weights[i] = 0;
     //}
-    admm_params.global_weights[i] = workers[i]/(num_worker + admm_params.global_var/admm_params.step_size);
+    admm_params.global_weights[i] = workers[i]/(num_worker * admm_params.step_size + admm_params.global_var);
   }
   return true;
 }

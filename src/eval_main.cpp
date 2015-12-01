@@ -5,6 +5,7 @@
 #include <dmlc/logging.h>
 #include "sample_set.h"
 #include "metrics.h"
+#include "arg_parser.h"
 
 using namespace dmlc;
 using namespace rabit;

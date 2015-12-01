@@ -39,8 +39,7 @@ class FtrlSolver {
    * \param offset the intercept weights.
    * \return prediction of instance x.
    */
-  real_t Predict(Row& x);
-  real_t Predict(Row& x, const std::vector<real_t>& offset);
+  real_t Predict(Row& x, const std::vector<real_t>& offset, const std::vector<real_t>& reg_offset);
 
   /*!
    * \brief assignment for the weights
@@ -66,7 +65,7 @@ class FtrlSolver {
    *
    * \param the samples set corresponding the model
    */
-  void Run(SampleSet& sample_set, const std::vector<real_t>& offset, const std::vector<real_t>& reg_offset);
+  void Run(SampleSet& train_set, SampleSet& test_set, const std::vector<real_t>& offset, const std::vector<real_t>& reg_offset);
  //protected:
   /*!
    * \brief the weights 
@@ -101,9 +100,5 @@ class FtrlSolver {
    * \brief the dimension of the weights
    */
   std::size_t dim_;
-  /*!
-   * \brief the addition in loss function 
-   */
-  real_t ls_2_;
 };
 } // namespace ftrl
