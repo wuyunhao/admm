@@ -53,17 +53,19 @@ void Worker::BaseUpdate(SampleSet& train_set, SampleSet& test_set, const AdmmCon
     reg_offset[i] = admm_params.global_weights[i] ;//- langr_vec_[i]/admm_params.step_size;
   }
 
-  ::ftrl::FtrlSolver ftrl_processor;
-  ftrl_processor.Init(ftrl_params);
+  //set the ftrl initial solution
+  ::ftrl::FtrlSolver ftrl_processor; //::sgd::SgdSolver sgd_processor;
+  ftrl_processor.Init(ftrl_params); //sgd_processor.Init(ftrl_params.dim, 0.01, ftrl_params.l_2, bias_vec_, reg_offset);
   
-  //::sgd::SgdSolver sgd_processor;
-  //sgd_processor.Init(ftrl_params.dim, 0.01, ftrl_params.l_2, bias_vec_, reg_offset);
+  std::string train_name = admm_params.train_path + psid_ + "_aggregated/part-00000"; 
 
   rabit::TrackerPrintf("base ftrl\n");
   for (int i = 0; i < 1; ++i) { 
-    //set the ftrl initial solution
-    ftrl_processor.Run(train_set, test_set, bias_vec_, reg_offset);
-    //sgd_processor.Run(train_set);
+    for (int part = 0; part < num_part_; ++part) {
+      CHECK(train_set.Initialize(train_name, part, num_part_));
+      rabit::TrackerPrintf("base stage :%d processor %d part \n", rabit::GetRank(), part);
+      ftrl_processor.Run(train_set, test_set, bias_vec_, reg_offset); //sgd_processor.Run(train_set);
+    }
     base_vec_ = ftrl_processor.weight();
   }
 
@@ -72,22 +74,24 @@ void Worker::BaseUpdate(SampleSet& train_set, SampleSet& test_set, const AdmmCon
 void Worker::BiasUpdate(SampleSet& train_set, SampleSet& test_set, const AdmmConfig& admm_params) {
   FtrlConfig ftrl_params(admm_params);
   ftrl_params.l_2 = 200;
-  ftrl_params.l_1 = 1000;// admm_params.bias_var;
+  ftrl_params.l_1 = 1000; // admm_params.bias_var;
   
   //set the reg_offset vector
   std::vector<::ftrl::FtrlSolver::real_t> reg_offset(ftrl_params.dim, 0);
   
-  ::ftrl::FtrlSolver ftrl_processor;
-  ftrl_processor.Init(ftrl_params);
+  //set the ftrl initial solution
+  ::ftrl::FtrlSolver ftrl_processor; //::sgd::SgdSolver sgd_processor;
+  ftrl_processor.Init(ftrl_params); //sgd_processor.Init(ftrl_params.dim, 0.01, ftrl_params.l_2, base_vec_, reg_offset);
 
-  //::sgd::SgdSolver sgd_processor;
-  //sgd_processor.Init(ftrl_params.dim, 0.01, ftrl_params.l_2, base_vec_, reg_offset);
-
+  std::string train_name = admm_params.train_path + psid_ + "_aggregated/part-00000";
+  
   rabit::TrackerPrintf("bias ftrl\n");
   for (int i = 0; i < 1; ++i) {
-    //set the ftrl initial solution
-    ftrl_processor.Run(train_set, test_set, base_vec_, reg_offset);
-    //sgd_processor.Run(train_set);
+    for (int part = 0; part < num_part_; ++part) {
+      CHECK(train_set.Initialize(train_name, part, num_part_));
+      rabit::TrackerPrintf("bias stage :%d processor %d part \n", rabit::GetRank(), part);
+      ftrl_processor.Run(train_set, test_set, base_vec_, reg_offset); //sgd_processor.Run(train_set);
+    }
     bias_vec_ = ftrl_processor.weight();
   }
   

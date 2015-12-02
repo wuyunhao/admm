@@ -44,9 +44,13 @@ class Worker {
   void LogLoss(SampleSet& sample_set, const AdmmConfig& admm_params, bool T);
  //private:
   /*!
-   * \brief worker's ID
+   * \brief worker's PSID
    */
-  std::size_t id_;
+  std::string psid_;
+  /*!
+   * \brief spliting number of data 
+   */
+  int num_part_;
   /*!
    * \brief the base weights
    */

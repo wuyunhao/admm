@@ -100,5 +100,14 @@ class FtrlSolver {
    * \brief the dimension of the weights
    */
   std::size_t dim_;
+  /*!
+   * \brief the splitting number of data
+   */
+  int num_part_;
+  /*!
+   * \brief the PSID
+   */
+  std::string psid_;
+
 };
 } // namespace ftrl

@@ -51,8 +51,10 @@ class LocalModel : public dmlc::Serializable {
      }
    }
 
-   void InitModel(std::size_t fdim) {
+   void InitModel(std::size_t fdim, std::string psid, int num_part) {
      worker_processor_.InitWorker(fdim);
+     worker_processor_.psid_ = psid;
+     worker_processor_.num_part_ = num_part;
    }
 };
 
@@ -72,8 +74,7 @@ class GlobalModel : public dmlc::Serializable {
        os << admm_params_.global_weights[i] << ' ';
      }
    }
-   void InitModel(const char* conf) {
-     ::admm::ArgParser arg_parser;
+   void InitModel(const char* conf, ::admm::ArgParser& arg_parser) {
      arg_parser.ADMMParse(conf, admm_params_);
    }
 };
@@ -89,13 +90,14 @@ int main(int argc, char* argv[]) {
 
   int iter = rabit::LoadCheckPoint(&global_model);
   if (iter == 0) {
-    global_model.InitModel(argv[1]);
-    local_model.InitModel(global_model.admm_params_.dim);
+    ::admm::ArgParser arg_parser;
+    global_model.InitModel(argv[1], arg_parser);
+    local_model.InitModel(global_model.admm_params_.dim, arg_parser.psid[rabit::GetRank()], arg_parser.num_part[rabit::GetRank()]);
   }
 
-  std::string pid_name = argv[2 + rabit::GetRank()];
-  std::string train_name = global_model.admm_params_.train_path + pid_name; 
-  std::string test_name = global_model.admm_params_.test_path + pid_name; 
+  //std::string pid_name = argv[2 + rabit::GetRank()];
+  //std::string train_name = global_model.admm_params_.train_path + pid_name; 
+  std::string test_name = global_model.admm_params_.test_path + local_model.worker_processor_.psid_ + "_aggregated/part-00000"; 
 
   rabit::TrackerPrintf("Initialization finished\n");
 
@@ -107,9 +109,7 @@ int main(int argc, char* argv[]) {
   for (int r = iter; r < max_iter; ++r) {
     std::fill(tmp.begin(), tmp.end(), 0.0f);   
     ::admm::SampleSet* train_set = new ::admm::SampleSet;
-    CHECK(train_set->Initialize(train_name, 0, 1));
     ::admm::SampleSet* test_set = new ::admm::SampleSet; 
-    CHECK(test_set->Initialize(test_name, 0, 1)); 
 
     rabit::TrackerPrintf("start allreduce \n");
     auto lazy_ftrl = [&]()
@@ -124,10 +124,8 @@ int main(int argc, char* argv[]) {
     group_w.push_back(local_model.worker_processor_.base_vec_);
     group_w.push_back(local_model.worker_processor_.bias_vec_);
 
-    metrics.LogLoss(*train_set, group_w, true);
-    metrics.Auc(*train_set, group_w, true);
     delete train_set;
-
+    CHECK(test_set->Initialize(test_name, 0, 1)); 
     metrics.LogLoss(*test_set, group_w, false);
     metrics.Auc(*test_set, group_w, false);
     delete test_set;
@@ -140,18 +138,14 @@ int main(int argc, char* argv[]) {
       rabit::TrackerPrintf("Finish %d-th iteration\n", r);
     }
   }
-  //std::string local_auc = dest_path + "admm_train_auc_" + pid_name;
-  //auto *streamb(dmlc::Stream::Create(&local_auc[0], "w"));
-  //local_model.SaveAuc(streamb, test_set);
-  //delete streamb;
 
-  std::string local_params = global_model.admm_params_.output_path + "admm_weight_" + pid_name;
+  std::string local_params = global_model.admm_params_.output_path + "admm_weight_" + local_model.worker_processor_.psid_;
   auto *stream = dmlc::Stream::Create(&local_params[0], "w");
   local_model.Save(stream);
   delete stream;
 
   //if (rabit::GetRank() == 0) {
-  std::string global_file = global_model.admm_params_.output_path + "global_params" + pid_name;
+  std::string global_file = global_model.admm_params_.output_path + "global_params" + local_model.worker_processor_.psid_;
   auto *streama(dmlc::Stream::Create(&global_file[0], "w"));
   global_model.Save(streama);
   delete streama;

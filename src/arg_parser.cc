@@ -15,8 +15,6 @@ void ArgParser::ADMMParse(const char* file, AdmmConfig& admm_params) {
     return;
   }
   std::map<std::string, std::string> dict;
-  std::vector<std::string> psid;
-  std::vector<std::string> num_part;
   std::string key, value;
   while (!in.eof()) {
     in >> key;
@@ -26,14 +24,15 @@ void ArgParser::ADMMParse(const char* file, AdmmConfig& admm_params) {
       dict[key] = value;
     }
     if (value == ":") {
+      in >> value;
       psid.push_back(key);
-      num_part.push_back(value);
+      num_part.push_back(atoi(value.c_str()));
     }
   }
   in.close();
 
-  admm_params.train_path = dict["train_path"] ;//+ psid[rabit::GetRank()] + "_aggregated/part-00000";
-  admm_params.test_path = dict["test_path"] ;//+ psid[rabit::GetRank()] + "_aggregated/part-00000";
+  admm_params.train_path = dict["train_path"];
+  admm_params.test_path = dict["test_path"];
   admm_params.output_path = dict["output_path"];
 
   admm_params.step_size = atof(dict["step_size"].c_str());
@@ -42,7 +41,6 @@ void ArgParser::ADMMParse(const char* file, AdmmConfig& admm_params) {
   admm_params.ftrl_alpha = atof(dict["ftrl_alpha"].c_str());
   admm_params.passes = atoi(dict["passes"].c_str());
   admm_params.dim = static_cast<size_t>(atoi(dict["dim"].c_str()));
-  //admm_params.num_part = atoi(num_part[rabit::GetRank()].c_str());
 
   admm_params.global_weights.resize(admm_params.dim);
   std::fill(admm_params.global_weights.begin(), admm_params.global_weights.end(), 0.0f);
@@ -57,8 +55,6 @@ void ArgParser::FTRLParse(const char* file, FtrlConfig& ftrl_params) {
     return;
   }
   std::map<std::string, std::string> dict;
-  std::vector<std::string> psid;
-  std::vector<std::string> num_part;
   std::string key, value;
   while (!in.eof()) {
     in >> key;
@@ -68,14 +64,15 @@ void ArgParser::FTRLParse(const char* file, FtrlConfig& ftrl_params) {
       dict[key] = value;
     }
     if (value == ":") {
+      in >> value;
       psid.push_back(key);
-      num_part.push_back(value);
+      num_part.push_back(atoi(value.c_str()));
     }
   }
   in.close();
 
-  ftrl_params.train_path = dict["train_path"] ;//+ psid[rabit::GetRank()] + "_aggregated/part-00000";
-  ftrl_params.test_path = dict["test_path"] ;//+ psid[rabit::GetRank()] + "_aggregated/part-00000";
+  ftrl_params.train_path = dict["train_path"];
+  ftrl_params.test_path = dict["test_path"];
   ftrl_params.output_path = dict["output_path"];
 
   ftrl_params.alpha = atof(dict["ftrl_alpha"].c_str());
@@ -84,7 +81,6 @@ void ArgParser::FTRLParse(const char* file, FtrlConfig& ftrl_params) {
   ftrl_params.l_2 = atof(dict["l_2"].c_str());
   ftrl_params.passes = atoi(dict["passes"].c_str());
   ftrl_params.dim = static_cast<size_t>(atoi(dict["dim"].c_str()));
-  //ftrl_params.num_part = atoi(num_part[rabit::GetRank()].c_str());
 
 }
 }
