@@ -12,6 +12,7 @@ SampleSet::~SampleSet() {
 
 bool SampleSet::Initialize(const std::string& uri,
     uint32_t part_index, uint32_t num_parts) {
+  rbiter_.reset();
   auto rbiter = ::dmlc::RowBlockIter<IndexType>::Create(
       uri.c_str(), part_index, num_parts, "libsvm");
   if (rbiter == NULL) {

@@ -25,9 +25,9 @@ class AdmmConfig {
   real_t bias_var;
   real_t ftrl_alpha;
   std::size_t dim;
-  int passes;
   std::vector<real_t> global_weights;
 
+  int passes;
   std::string train_path;
   std::string test_path;
   std::string output_path;
@@ -50,6 +50,7 @@ class FtrlConfig {
   real_t l_1;
   real_t l_2;
   std::size_t dim;
+
   int passes;
   std::string train_path;
   std::string test_path;

@@ -58,6 +58,8 @@ class Model : public dmlc::Serializable {
       ::admm::ArgParser arg_parser;
       arg_parser.FTRLParse(conf, ftrl_params_);
       ftrl_processor_.Init(ftrl_params_);
+      ftrl_processor_.psid_ = arg_parser.psid[rabit::GetRank()];
+      ftrl_processor_.num_part_ = arg_parser.num_part[rabit::GetRank()];
     }
 }; 
 
@@ -70,12 +72,12 @@ int main(int argc, char* argv[]) {
   Model ftrl_model;
   ftrl_model.InitModel(argv[1]);
 
-  int max_iter = ftrl_model.ftrl_params_.passes;
-  std::string train_name = ftrl_model.ftrl_params_.train_path + std::string(argv[2 + rabit::GetRank()]); 
-  std::string test_name = ftrl_model.ftrl_params_.test_path + std::string(argv[2 + rabit::GetRank()]);
+  std::string train_name = ftrl_model.ftrl_params_.train_path + ftrl_model.ftrl_processor_.psid_ + "_aggregated/part-00000";
+  std::string test_name = ftrl_model.ftrl_params_.test_path + ftrl_model.ftrl_processor_.psid_ + "_aggregated/part-00000";
 
+  int num_part = ftrl_model.ftrl_processor_.num_part_;
+  int max_iter = ftrl_model.ftrl_params_.passes;
   size_t dim = ftrl_model.ftrl_params_.dim;
-  int num_part = 3;// ftrl_model.ftrl_params_.num_part;
   std::vector<float> offset(dim, 0);
   std::vector<float> reg_offset(dim, 0);
 
@@ -88,27 +90,18 @@ int main(int argc, char* argv[]) {
       rabit::TrackerPrintf("%d th iteration: \n", i);
   
       ftrl_model.ftrl_processor_.Run(*train_set, *test_set, offset, reg_offset);
-  
-      //std::vector<std::vector<float>> group_w;
-      //group_w.push_back(ftrl_model.ftrl_processor_.weight_);
-      //metrics.LogLoss(*train_set, group_w, true);
-      //metrics.Auc(*train_set, group_w, true);
     }
+
     delete train_set;
+    CHECK(test_set->Initialize(test_name, 0, 1)); 
     std::vector<std::vector<float>> group_w;
     group_w.push_back(ftrl_model.ftrl_processor_.weight_);
-    CHECK(test_set->Initialize(test_name, 0, 1)); 
     metrics.LogLoss(*test_set, group_w, false);
     metrics.Auc(*test_set, group_w, false);
     delete test_set;
   }
 
-  //rabit::TrackerPrintf("compute auc \n");
-  //std::string auc_name = output_path + "ftrl_auc" + "_" + std::string(argv[10 + rabit::GetRank()]);
-  //auto *stream(dmlc::Stream::Create(&auc_name[0], "w"));
-  //ftrl_model.SaveAuc(stream, test_set);
-
-  std::string ftrl_weight = ftrl_model.ftrl_params_.output_path + "ftrl_weight_" + std::string(argv[2 + rabit::GetRank()]);
+  std::string ftrl_weight = ftrl_model.ftrl_params_.output_path + "ftrl_weight_" + ftrl_model.ftrl_processor_.psid_;
   auto *streamb(dmlc::Stream::Create(&ftrl_weight[0], "w"));
   ftrl_model.Save(streamb);
 
