@@ -44,7 +44,7 @@ Worker::~Worker() {
 
 void Worker::BaseUpdate(SampleSet& train_set, SampleSet& test_set, const AdmmConfig& admm_params) {
   FtrlConfig ftrl_params(admm_params);
-  ftrl_params.l_2 = 200;
+  ftrl_params.l_2 = 1000;
   ftrl_params.l_1 = 1;
   
   //set the reg_offset vector
@@ -61,9 +61,9 @@ void Worker::BaseUpdate(SampleSet& train_set, SampleSet& test_set, const AdmmCon
 
   rabit::TrackerPrintf("base ftrl\n");
   for (int i = 0; i < 1; ++i) { 
-    for (int part = 0; part < num_part_; ++part) {
-      CHECK(train_set.Initialize(train_name, part, num_part_));
-      rabit::TrackerPrintf("base stage :%d processor %d part \n", rabit::GetRank(), part);
+    for (int part = 0; part < 1; ++part) {
+      CHECK(train_set.Initialize(train_name, partid_, num_part_));
+      rabit::TrackerPrintf("base stage :%s %d part \n", &psid_[0], partid_);
       ftrl_processor.Run(train_set, test_set, bias_vec_, reg_offset); //sgd_processor.Run(train_set);
     }
     base_vec_ = ftrl_processor.weight();
@@ -87,9 +87,9 @@ void Worker::BiasUpdate(SampleSet& train_set, SampleSet& test_set, const AdmmCon
   
   rabit::TrackerPrintf("bias ftrl\n");
   for (int i = 0; i < 1; ++i) {
-    for (int part = 0; part < num_part_; ++part) {
-      CHECK(train_set.Initialize(train_name, part, num_part_));
-      rabit::TrackerPrintf("bias stage :%d processor %d part \n", rabit::GetRank(), part);
+    for (int part = 0; part < 1; ++part) {
+      CHECK(train_set.Initialize(train_name, partid_, num_part_));
+      rabit::TrackerPrintf("bias stage :%s %d part \n", &psid_[0], partid_);
       ftrl_processor.Run(train_set, test_set, base_vec_, reg_offset); //sgd_processor.Run(train_set);
     }
     bias_vec_ = ftrl_processor.weight();
