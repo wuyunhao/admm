@@ -19,6 +19,7 @@ void ArgParser::ADMMParse(const char* file, AdmmConfig& admm_params) {
   while (!in.eof()) {
     in >> key;
     in >> value;
+    if (in.fail()) break;
     if (value == "=") {
       in >> value;
       dict[key] = value;
@@ -45,6 +46,8 @@ void ArgParser::ADMMParse(const char* file, AdmmConfig& admm_params) {
   admm_params.global_weights.resize(admm_params.dim);
   std::fill(admm_params.global_weights.begin(), admm_params.global_weights.end(), 0.0f);
 
+  if (dict.count("load_path"))
+    load_path = dict["load_path"];
 }
 
 void ArgParser::FTRLParse(const char* file, FtrlConfig& ftrl_params) {
@@ -82,5 +85,7 @@ void ArgParser::FTRLParse(const char* file, FtrlConfig& ftrl_params) {
   ftrl_params.passes = atoi(dict["passes"].c_str());
   ftrl_params.dim = static_cast<size_t>(atoi(dict["dim"].c_str()));
 
+  if (dict.count("load_path"))
+    load_path = dict["load_path"];
 }
 }

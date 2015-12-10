@@ -4,23 +4,15 @@
 source ./script/start.sh
 
 # new init ###############################
-L1="1"
-L2="10"
-ftrl_alpha=0.1
-step_size=1
-passes=30
-
+CONF="ftrl.conf"
 #TRAIN_DIR="hdfs://ns1/user/yunhao1/ETL/yunhao_full_20151112_libsvm_train/"
 #TEST_DIR="hdfs://ns1/user/yunhao1/ETL/yunhao_full_20151112_libsvm_test/"
-TRAIN_DIR="hdfs://ns1/user/zhangwei29/ETL/ftrl_admm_libsvm_train/"
-TEST_DIR="hdfs://ns1/user/zhangwei29/ETL/ftrl_admm_libsvm_test/"
 
-EXP=`cat script/exclude_full`
-EXP=`echo $EXP|tr ' ' '|'`
-INSTANCE=(`hadoop fs -ls ${TEST_DIR}/*/* |awk '$5 > 60'| awk -F'/' '{print $(NF-1)"/"$NF}' | grep -v -E "Found|temporary|$EXP" `)
-ITEMS=(`echo ${INSTANCE[@]}|sed 's/\/part-[0-9]*//g'`)
-INSTANCE_BACKUP=(${INSTANCE[@]})
-ITEMS_BACKUP=(${ITEMS[@]})
+TEST_DIR=`cat $CONF | grep test_path |awk '{print $NF}'`
+#EXP=`cat script/exclude_full`
+#EXP=`echo $EXP|tr ' ' '|'`
+#INSTANCE_BACKUP=(${INSTANCE[@]})
+#ITEMS_BACKUP=(${ITEMS[@]})
 
 function sub_table() {
 	for ((fp=0;fp<${num_task};++fp));do
@@ -127,15 +119,14 @@ function merge_run(){
 }
 
 function run_records(){
-  NEIBOR=`cat neibor`
-  NEIBOR=`echo $NEIBOR | sed 's/ /|/g'`
-  echo $NEIBOR
-  INSTANCE=(`echo ${INSTANCE_BACKUP[@]} |awk '{for(i=1;i<=NF;++i) if($i ~ /'$NEIBOR'/) print $i}'`)
-  ITEMS=(`echo ${ITEMS_BACKUP[@]} | awk '{for(i=1;i<=NF;++i) if($i ~ /'$NEIBOR'/) print $i}'`)
+  CONF=ftrl.conf
+  passes=`cat $CONF | grep  passes | awk '{print $NF}'`
+  #INSTANCE=(`echo ${INSTANCE_BACKUP[@]} |awk '{for(i=1;i<=NF;++i) if($i ~ /'$NEIBOR'/) print $i}'`)
+  #ITEMS=(`echo ${ITEMS_BACKUP[@]} | awk '{for(i=1;i<=NF;++i) if($i ~ /'$NEIBOR'/) print $i}'`)
 
-  echo ${INSTANCE[@]} | sed 's/ /\n/g' > INSTANCE
-  echo ${ITEMS[@]} | sed 's/ /\n/g'> ITEMS
-  num_task=${#INSTANCE[@]}
+  #echo ${INSTANCE[@]} | sed 's/ /\n/g' > INSTANCE
+  #echo ${ITEMS[@]} | sed 's/ /\n/g'> ITEMS
+  num_task=1
   echo $num_task
 
   FINALTABLE="FINALTABLE_a"
@@ -143,13 +134,7 @@ function run_records(){
   log="log_a"
   
   echo > $log
-  for i in $L1;do
-    for j in $L2;do
-        l_v=$i
-	    l_w=$j
-        admm 1>> $log
-	done
-  done
+  ftrl 1>> $log
   
   echo -n '|' ''  '  ' '|' '' > $FINALTABLE
   for f in ${ITEMS[@]};do

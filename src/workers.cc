@@ -44,7 +44,7 @@ Worker::~Worker() {
 
 void Worker::BaseUpdate(SampleSet& train_set, SampleSet& test_set, const AdmmConfig& admm_params) {
   FtrlConfig ftrl_params(admm_params);
-  ftrl_params.l_2 = 1000;
+  ftrl_params.l_2 = 200;
   ftrl_params.l_1 = 1;
   
   //set the reg_offset vector
