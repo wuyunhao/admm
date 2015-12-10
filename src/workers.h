@@ -52,6 +52,10 @@ class Worker {
    */
   int num_part_;
   /*!
+   * \brief spliting id of data 
+   */
+  int partid_;
+  /*!
    * \brief the base weights
    */
   std::vector<real_t> base_vec_;

@@ -10,5 +10,6 @@ class ArgParser {
 
   std::vector<std::string> psid;
   std::vector<int> num_part;
+  std::string load_path;
 };
 } // namespace admm

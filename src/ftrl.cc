@@ -1,10 +1,11 @@
 
+#include "ftrl.h"
 #include <stdlib.h>
 #include <algorithm>
 #include <rabit.h>
 #include <dmlc/logging.h>
-#include "ftrl.h"
 #include "metrics.h"
+#include "parallel_ftrl.h"
 
 namespace ftrl{
 
@@ -103,22 +104,45 @@ void FtrlSolver::Run(FtrlSolver::SampleSet& train_set,
                      const std::vector<FtrlSolver::real_t>& offset,
                      const std::vector<FtrlSolver::real_t>& reg_offset) {
 
+  int count = 0;
   train_set.Rewind();
   while(train_set.Next()) {
     Row y = train_set.GetData();
-    auto x = train_set.TranslateData(y);
-
+    auto x = train_set.TranslateData(y); 
+    //tbb::parallel_for(tbb::blocked_range<IndexType> (0, x.length), 
+    //                  tbb_util::WeightUpdator(
+    //                      x.index,
+    //                      &weight_[0],
+    //                      &mid_weight_[0],
+    //                      &squared_sum_[0],
+    //                      &reg_offset[0],
+    //                      alpha_,
+    //                      beta_,
+    //                      l_1_,
+    //                      l_2_));
+    //auto inner_product = x.SDot(&weight_[0], dim_) + x.SDot(&offset[0], dim_);
+    //int label = x.label > 0? 1:0;
+    //auto predict = 1.0/(1 + exp(- std::max(std::min(inner_product, (float)35), (float)(-35)))); 
+    //tbb::parallel_for(tbb::blocked_range<IndexType> (0, x.length),
+    //                  tbb_util::ParamUpdator(
+    //                      x.index,
+    //                      &weight_[0],
+    //                      &mid_weight_[0],
+    //                      &squared_sum_[0],
+    //                      predict - label,
+    //                      alpha_));
     auto predict = Predict(x, offset, reg_offset);
     Update(predict, x, reg_offset);
 
-    delete x.index;
-    delete x.value;
+    delete [] x.index;
+    delete [] x.value;
+    //rabit::TrackerPrintf("%f\n", predict);
   }
 
   Row last = train_set.TranslateData(train_set.GetLastData());
   Predict(last, offset, reg_offset);
-  delete last.index;
-  delete last.value;
+  delete [] last.index;
+  delete [] last.value;
 
 }
 } // namespace ftrl

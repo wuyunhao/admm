@@ -38,34 +38,24 @@ l_2=2.5
 
 # ftrl ###############################################
 function ftrl(){
+  CONF=ftrl.conf
   if [ $mode -eq 0 ];then
-    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HADOOP_HOME/lib/native:$JAVA_HOME/jre/lib/amd64:$JAVA_HOME/jre/lib/amd64/server  DMLC_ROLE=worker \
-	./tracker/dmlc_local.py -n $num_task  --log-level DEBUG  ./ftrl \
-	  $l_1 $l_2 $ftrl_alpha $ftrl_beta $dim $passes \
-	  $TRAIN_DIR $TEST_DIR $OUTPUT_DIR \
-	  ${INSTANCE[@]}
+    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HADOOP_HOME/lib/native:$JAVA_HOME/jre/lib/amd64:$JAVA_HOME/jre/lib/amd64/server:./lib  DMLC_ROLE=worker \
+	./tracker/dmlc_local.py -n $num_task  --log-level DEBUG  ./ftrl $CONF 
   else
-	./tracker/dmlc_yarn.py -n $num_task --vcores 1 --log-level DEBUG -q root.megatron.yunhao1 --jobname admm_lr --tempdir ns1/user/yunhao1/temp -mem 5120 ./ftrl \
-	  $l_1 $l_2 $ftrl_alpha $ftrl_beta $dim $passes \
-	  $TRAIN_DIR $TEST_DIR $OUTPUT_DIR \
-	  ${INSTANCE[@]}
+	./tracker/dmlc_yarn.py -n $num_task --vcores 1 --log-level DEBUG -q root.megatron.yunhao1 --jobname admm_lr --tempdir ns1/user/yunhao1/temp -mem 5120 ./ftrl $CONF
   fi
 } 
 
 # admm ###############################################
 function admm(){
+  CONF=admm.conf
   if [  $mode -eq 0 ];then
     LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HADOOP_HOME/lib/native:$JAVA_HOME/jre/lib/amd64:$JAVA_HOME/jre/lib/amd64/server \
     DMLC_ROLE=worker \
-	./tracker/dmlc_local.py -n $num_task --log-level DEBUG  ./admm \
-	  $l_w $l_v $step_size $ftrl_alpha $dim $passes \
-	  $TRAIN_DIR $TEST_DIR $OUTPUT_DIR \
-	  ${INSTANCE[@]}
+	./tracker/dmlc_local.py -n $num_task --log-level DEBUG  ./admm $CONF
   else
-	./tracker/dmlc_yarn.py -n $num_task --vcores 1 --log-level DEBUG -q root.megatron.yunhao1 --jobname admm_lr --tempdir ns1/user/yunhao1/temp -mem 5120 ./admm \
-	  $l_w $l_v $step_size $ftrl_alpha $dim $passes \
-	  $TRAIN_DIR $TEST_DIR $OUTPUT_DIR \
-	  ${INSTANCE[@]}
+	./tracker/dmlc_yarn.py -n $num_task --vcores 1 --log-level DEBUG -q root.megatron.yunhao1 --jobname admm_lr --tempdir ns1/user/yunhao1/temp -mem 5120 ./admm $CONF
   fi
 }
 

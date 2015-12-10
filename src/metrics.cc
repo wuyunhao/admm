@@ -59,8 +59,8 @@ Metrics::real_t Metrics::Auc(::admm::SampleSet& sample_set, std::vector<std::vec
     ranks.push_back(predict);
     labels.push_back((int)x.label);
     
-    delete x.index;
-    delete x.value;
+    delete [] x.index;
+    delete [] x.value;
   }
 
   std::vector<real_t> sorted_ranks;
@@ -105,8 +105,8 @@ Metrics::real_t Metrics::LogLoss(::admm::SampleSet& sample_set, std::vector<std:
     sum += x.label > 0? -log(predict): -log(1 - predict);
     count++;
     
-    delete x.index;
-    delete x.value;
+    delete [] x.index;
+    delete [] x.value;
   }
   
   if (T) 

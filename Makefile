@@ -11,7 +11,8 @@ CFLAGS += -I./ -I./include -I./third_party/root/include -Wall $(OPT) -pthread -f
 CXXFLAGS += -I. -I./include -I./third_party/root/include -Wall -std=c++0x -DDMLC_USE_CXX11 $(OPT) -pthread -fPIC -fopenmp
 
 LDFLAGS += -L./third_party/root/lib -L/usr/local/lib -L$(JAVA_HOME)/lib/amd64 -L./lib 
-LIBS += -lpthread -lrabit -ldmlc -lhdfs -lhadoop -ljvm -llbfgs -lrt
+LIBS += -lpthread -lrabit -ldmlc -lhdfs -lhadoop -ljvm -llbfgs -lrt -ldl
+AR = ./lib/libintel_tbb.a
 
 LIBOBJECTS = src/sample_set.o \
 			 src/ftrl.o \
@@ -38,9 +39,9 @@ lint:
 	python cpplint.py src/*.h src/*.cc src/*.cpp
 
 program: $(LIBOBJECTS) src/admm_allreduce.cpp
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBOBJECTS) src/admm_allreduce.cpp -o admm $(LIBS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBOBJECTS) src/admm_allreduce.cpp -o admm $(LIBS) $(AR)
 ftrl: $(LIBOBJECTS) src/ftrl_main.cpp
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBOBJECTS) src/ftrl_main.cpp -o ftrl $(LIBS)
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBOBJECTS) src/ftrl_main.cpp -o ftrl $(LIBS) $(AR)
 evan: $(LIBOBJECTS) src/eval_main.cpp
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBOBJECTS) src/eval_main.cpp -o evan $(LIBS)
 pred: $(LIBOBJECTS) src/predict_main.cpp
