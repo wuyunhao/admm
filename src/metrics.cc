@@ -78,13 +78,13 @@ Metrics::real_t Metrics::Auc(::admm::SampleSet& sample_set, std::vector<std::vec
   }
 
   auto auc = positive_sum/(total_p*total_n) - (total_p + 1)/(2*total_n);
-  if (T) {
-    rabit::TrackerPrintf("The %d processor Train AUC is: %f \n", rabit::GetRank(), auc);
-    rabit::TrackerPrintf("The %d processor Train PV is: %d \n", rabit::GetRank(), sorted_ranks.size());
-  } else {
-    rabit::TrackerPrintf("The %d processor Test AUC is: %f \n ", rabit::GetRank(), auc);
-    rabit::TrackerPrintf("The %d processor Test PV is: %d \n", rabit::GetRank(), sorted_ranks.size());
-  }
+  //if (T) {
+  //  rabit::TrackerPrintf("The %d processor Train AUC is: %f \n", rabit::GetRank(), auc);
+  //  rabit::TrackerPrintf("The %d processor Train PV is: %d \n", rabit::GetRank(), sorted_ranks.size());
+  //} else {
+  //  rabit::TrackerPrintf("The %d processor Test AUC is: %f \n ", rabit::GetRank(), auc);
+  //  rabit::TrackerPrintf("The %d processor Test PV is: %d \n", rabit::GetRank(), sorted_ranks.size());
+  //}
   return auc;
 }
 
@@ -109,10 +109,10 @@ Metrics::real_t Metrics::LogLoss(::admm::SampleSet& sample_set, std::vector<std:
     delete [] x.value;
   }
   
-  if (T) 
-    rabit::TrackerPrintf("The %d processor Train LogLoss is %f \n", rabit::GetRank(), sum/count);
-  else 
-    rabit::TrackerPrintf("The %d processor Test LogLoss is %f \n", rabit::GetRank(), sum/count);
+  //if (T) 
+  //  rabit::TrackerPrintf("The %d processor Train LogLoss is %f \n", rabit::GetRank(), sum/count);
+  //else 
+  //  rabit::TrackerPrintf("The %d processor Test LogLoss is %f \n", rabit::GetRank(), sum/count);
   return sum/count;
 }
 

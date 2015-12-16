@@ -49,6 +49,10 @@ class SampleSet {
    * \brief Get the last data
    */
   ::dmlc::Row<IndexType> GetLastData();
+  /*!
+   * \brief size of sample
+   */
+  int Size();
 
   SampleSet();
   virtual ~SampleSet();

@@ -67,6 +67,18 @@ class Worker {
    * \brief the langrange coefficients
    */
   std::vector<real_t> langr_vec_;
+  /*!
+   * \brief the hold ftrl nt coefficients
+   */
+  std::vector<real_t> nt_vec_;
+  /*!
+   * \brief the hold ftrl zt coefficients
+   */
+  std::vector<real_t> zt_vec_;
+  /*!
+   * \brief indicate whether loading occurs
+   */
+  bool load;
 };
 
 } // namespace admm

@@ -33,10 +33,16 @@ void Worker::InitWorker(std::size_t fdim) {
   base_vec_.resize(fdim);
   bias_vec_.resize(fdim);
   langr_vec_.resize(fdim);
+  nt_vec_.resize(fdim);
+  zt_vec_.resize(fdim);
 
   std::fill(base_vec_.begin(), base_vec_.end(), 0);    
   std::fill(bias_vec_.begin(), bias_vec_.end(), 0);    
   std::fill(langr_vec_.begin(), langr_vec_.end(), 0);    
+  std::fill(nt_vec_.begin(), nt_vec_.end(), 0);    
+  std::fill(zt_vec_.begin(), zt_vec_.end(), 0);    
+
+  load = false;
 }
 
 Worker::~Worker() {
@@ -57,16 +63,25 @@ void Worker::BaseUpdate(SampleSet& train_set, SampleSet& test_set, const AdmmCon
   ::ftrl::FtrlSolver ftrl_processor; //::sgd::SgdSolver sgd_processor;
   ftrl_processor.Init(ftrl_params); //sgd_processor.Init(ftrl_params.dim, 0.01, ftrl_params.l_2, bias_vec_, reg_offset);
   
+  ftrl_processor.squared_sum_ = nt_vec_;
+  ftrl_processor.mid_weight_ = zt_vec_; 
+
   std::string train_name = admm_params.train_path + psid_ + "_aggregated/part-00000"; 
 
   rabit::TrackerPrintf("base ftrl\n");
   for (int i = 0; i < 1; ++i) { 
-    for (int part = 0; part < 1; ++part) {
-      CHECK(train_set.Initialize(train_name, partid_, num_part_));
-      rabit::TrackerPrintf("base stage :%s %d part \n", &psid_[0], partid_);
+    for (int part = 0; part < num_part_; ++part) {
+      CHECK(train_set.Initialize(train_name, part, num_part_));
+      //rabit::TrackerPrintf("base stage :%s %d part \n", &psid_[0], part);
       ftrl_processor.Run(train_set, test_set, bias_vec_, reg_offset); //sgd_processor.Run(train_set);
     }
     base_vec_ = ftrl_processor.weight();
+  }
+
+  if (load) {
+    nt_vec_ = ftrl_processor.squared_sum_;
+    zt_vec_ = ftrl_processor.mid_weight_;
+    load = false;
   }
 
 }
@@ -87,9 +102,9 @@ void Worker::BiasUpdate(SampleSet& train_set, SampleSet& test_set, const AdmmCon
   
   rabit::TrackerPrintf("bias ftrl\n");
   for (int i = 0; i < 1; ++i) {
-    for (int part = 0; part < 1; ++part) {
-      CHECK(train_set.Initialize(train_name, partid_, num_part_));
-      rabit::TrackerPrintf("bias stage :%s %d part \n", &psid_[0], partid_);
+    for (int part = 0; part < num_part_; ++part) {
+      CHECK(train_set.Initialize(train_name, part, num_part_));
+      //rabit::TrackerPrintf("bias stage :%s %d part \n", &psid_[0], part);
       ftrl_processor.Run(train_set, test_set, base_vec_, reg_offset); //sgd_processor.Run(train_set);
     }
     bias_vec_ = ftrl_processor.weight();

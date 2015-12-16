@@ -88,7 +88,10 @@ void SampleSet::Rewind() {
   new_x.index = new_x_index;
   new_x.value = new_x_value;
   return new_x;
+}
 
+int SampleSet::Size() {
+  return rb_size_;
 }
 
 }  // namespace admm

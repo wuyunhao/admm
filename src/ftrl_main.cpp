@@ -1,4 +1,5 @@
 #include <memory>
+#include <iomanip>
 #include <cstdlib>
 #include <rabit.h>
 #include <dmlc/logging.h>
@@ -26,13 +27,45 @@ class Model : public dmlc::Serializable {
     ::admm::FtrlConfig ftrl_params_;
 
     void Load(dmlc::Stream *fi) {
+      dmlc::istream is(fi);
+      ftrl_processor_.weight_.clear();
+      ftrl_processor_.mid_weight_.clear();
+      ftrl_processor_.squared_sum_.clear();
+      std::string value;
+      while(!is.eof()) {
+        // w recovery
+        is >> value;
+        if (is.fail()) break;
+        float val = atof(value.c_str());
+        ftrl_processor_.weight_.push_back(val);
+
+        //z_t recovery
+        is >> value;
+        val = atof(&value[0]);
+        ftrl_processor_.mid_weight_.push_back(val);
+
+        //n_t recovery
+        is >> value;
+        val = atof(&value[0]);
+        ftrl_processor_.squared_sum_.push_back(val);
+      }
+
     }
 
     void Save(dmlc::Stream *fo) const {
       dmlc::ostream os(fo);
       std::vector<float> weights = ftrl_processor_.weight();
       for (size_t i = 0; i < weights.size(); ++i) {
-        os << weights[i] << ' ';
+        os << i+1 << ":" << weights[i] << '\n';
+      }
+    }
+
+    void SaveState(dmlc::Stream *fo) {
+      dmlc::ostream os(fo);
+      for (size_t i = 0; i < ftrl_processor_.dim_; ++i) {
+        os << std::left << std::setw(17) << ftrl_processor_.weight_[i]
+           << std::left << std::setw(17) << ftrl_processor_.mid_weight_[i]
+           << std::left << std::setw(17) << ftrl_processor_.squared_sum_[i] << '\n';
       }
     }
 
@@ -60,6 +93,13 @@ class Model : public dmlc::Serializable {
       ftrl_processor_.Init(ftrl_params_);
       ftrl_processor_.psid_ = arg_parser.psid[rabit::GetRank()];
       ftrl_processor_.num_part_ = arg_parser.num_part[rabit::GetRank()];
+
+      if (arg_parser.load_path.size() != 0) {
+        std::string ftrl_weight = ftrl_params_.output_path + "ftrl_weight_" + ftrl_processor_.psid_;
+        auto *stream(dmlc::Stream::Create(&ftrl_weight[0], "r"));
+        Load(stream);
+        delete stream;
+      }
     }
 }; 
 
@@ -87,24 +127,28 @@ int main(int argc, char* argv[]) {
     ::admm::SampleSet* test_set = new ::admm::SampleSet;
     for (int part = 0; part < num_part; part++) {
       CHECK(train_set->Initialize(train_name, part, num_part));
-      rabit::TrackerPrintf("%d th iteration: \n", i);
-  
       ftrl_model.ftrl_processor_.Run(*train_set, *test_set, offset, reg_offset);
     }
-
     delete train_set;
+
     CHECK(test_set->Initialize(test_name, 0, 1)); 
     std::vector<std::vector<float>> group_w;
     group_w.push_back(ftrl_model.ftrl_processor_.weight_);
-    metrics.LogLoss(*test_set, group_w, false);
-    metrics.Auc(*test_set, group_w, false);
+    float loss = metrics.LogLoss(*test_set, group_w, false);
+    float auc = metrics.Auc(*test_set, group_w, false);
+    rabit::TrackerPrintf("%s | %.7f | %.7f | %d\n", &ftrl_model.ftrl_processor_.psid_[0], 
+                          loss, auc, test_set->Size());
     delete test_set;
   }
 
   std::string ftrl_weight = ftrl_model.ftrl_params_.output_path + "ftrl_weight_" + ftrl_model.ftrl_processor_.psid_;
   auto *streamb(dmlc::Stream::Create(&ftrl_weight[0], "w"));
-  ftrl_model.Save(streamb);
+  ftrl_model.SaveState(streamb);
+  delete streamb;
 
+  std::string upload_params = ftrl_model.ftrl_params_.output_path + ftrl_model.ftrl_processor_.psid_ + ".bin";
+  streamb = dmlc::Stream::Create(&upload_params[0], "w");
+  ftrl_model.Save(streamb);
   delete streamb;
 
   rabit::Finalize();

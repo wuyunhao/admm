@@ -16,6 +16,9 @@ int main(int argc, char* argv[]) {
   if (iter == 0) {
     ::admm::ArgParser arg_parser;
     global_model.InitModel(argv[1], arg_parser);
+    //global_model.admm_params_.train_path = argv[2];
+    //global_model.admm_params_.test_path = argv[3];
+
     local_model.InitModel(global_model.admm_params_.dim, arg_parser);
     if (arg_parser.load_path.size() != 0) {
       std::string local_load = arg_parser.load_path + "admm_weight_" + local_model.worker_processor_.psid_ + 
@@ -24,7 +27,7 @@ int main(int argc, char* argv[]) {
       local_model.Load(local_stream);
       delete local_stream;
 
-      std::string global_load = arg_parser.load_path + "global_params_" + local_model.worker_processor_.psid_ + 
+      std::string global_load = arg_parser.load_path + "global_params" + local_model.worker_processor_.psid_ + 
                                std::to_string(local_model.worker_processor_.partid_);
       auto *global_stream = dmlc::Stream::Create(&global_load[0], "r");
       global_model.Load(global_stream);
@@ -44,10 +47,12 @@ int main(int argc, char* argv[]) {
     ::admm::SampleSet* train_set = new ::admm::SampleSet;
     ::admm::SampleSet* test_set = new ::admm::SampleSet; 
 
+    if (r == max_iter - 1)
+      local_model.worker_processor_.load = true;
     rabit::TrackerPrintf("start allreduce \n");
     auto lazy_ftrl = [&]()
     {
-      local_model.worker_processor_.BiasUpdate(*train_set, *test_set, global_model.admm_params_);
+      //local_model.worker_processor_.BiasUpdate(*train_set, *test_set, global_model.admm_params_);
       local_model.worker_processor_.BaseUpdate(*train_set, *test_set, global_model.admm_params_);
       local_model.worker_processor_.GetWeights(global_model.admm_params_, tmp);
     };
@@ -59,8 +64,10 @@ int main(int argc, char* argv[]) {
 
     delete train_set;
     CHECK(test_set->Initialize(test_name, 0, 1)); 
-    metrics.LogLoss(*test_set, group_w, false);
-    metrics.Auc(*test_set, group_w, false);
+    float loss = metrics.LogLoss(*test_set, group_w, false);
+    float auc = metrics.Auc(*test_set, group_w, false);
+    rabit::TrackerPrintf("%s | %.7f | %.7f | %d\n", &local_model.worker_processor_.psid_[0], 
+                          loss, auc, test_set->Size());
     delete test_set;
 
     master_processor.GlobalUpdate(tmp, global_model.admm_params_, rabit::GetWorldSize());
@@ -78,12 +85,18 @@ int main(int argc, char* argv[]) {
   local_model.SaveState(stream);
   delete stream;
 
+  std::string upload_params = global_model.admm_params_.output_path + local_model.worker_processor_.psid_ + 
+                              ".bin";
+  stream = dmlc::Stream::Create(&upload_params[0], "w");
+  local_model.Save(stream);
+  delete stream;
+
   //if (rabit::GetRank() == 0) {
-  std::string global_file = global_model.admm_params_.output_path + "global_params_" + local_model.worker_processor_.psid_ + 
-                             std::to_string(local_model.worker_processor_.partid_);
-  auto *streama(dmlc::Stream::Create(&global_file[0], "w"));
-  global_model.Save(streama);
-  delete streama;
+    std::string global_file = global_model.admm_params_.output_path + "global_params" + local_model.worker_processor_.psid_ + 
+                               std::to_string(local_model.worker_processor_.partid_);
+    auto *streama(dmlc::Stream::Create(&global_file[0], "w"));
+    global_model.Save(streama);
+    delete streama;
   //}
 
   rabit::Finalize();
