@@ -5,7 +5,6 @@
 #include <rabit.h>
 #include <dmlc/logging.h>
 #include "metrics.h"
-#include "parallel_ftrl.h"
 
 namespace ftrl{
 

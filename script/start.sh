@@ -10,10 +10,6 @@ TRAIN_DIR="hdfs://ns1/user/yunhao1/admm/traindata/"
 TEST_DIR="hdfs://ns1/user/yunhao1/admm/testdata/"
 OUTPUT_DIR="hdfs://ns1/user/yunhao1/dir-weights/"
 INPUT_DIR="hdfs://ns1/user/yunhao1/dir-weights/"
-#TRAIN_DIR="data/"
-#TEST_DIR="data/"
-INSTANCE=''
-num_task=''
 
 #common configure ####################################
 dim=2000000
@@ -24,8 +20,6 @@ ratio=0.4
 
 INSTANCE=(PDPS000000005427)
 num_task=${#INSTANCE[@]}
-#echo $num_task
-#echo ${INSTANCE[@]}
 
 #admm configure ######################################
 l_w=4
