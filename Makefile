@@ -48,6 +48,8 @@ pred: $(LIBOBJECTS) src/predict_main.cpp
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBOBJECTS) src/predict_main.cpp -o pred $(LIBS)
 sgd: $(LIBOBJECTS) src/sgd_main.cpp
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBOBJECTS) src/sgd_main.cpp -o sgd $(LIBS)
+itest: $(LIBOBJECTS) src/test_main.cpp
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBOBJECTS) src/test_main.cpp -o itest $(LIBS)
 
 all_test: $(LIBOBJECTS) $(TESTOBJECTS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LIBOBJECTS) $(TESTOBJECTS) -o  all_test -g test/gtest-all.cc test/gtest_main.cc $(LIBS)

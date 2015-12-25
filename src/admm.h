@@ -57,7 +57,9 @@ class LocalModel : public dmlc::Serializable {
    void Save(dmlc::Stream *fo) const {
      dmlc::ostream os(fo);
      for (size_t i = 0; i < worker_processor_.base_vec_.size(); ++i) {
-       os << i+1 << ":" << worker_processor_.base_vec_[i] + worker_processor_.bias_vec_[i] << '\n';
+       float val = worker_processor_.base_vec_[i] + worker_processor_.bias_vec_[i]; 
+       if (val > exp(-6.0f))
+         os << i+1 << ":" << val << '\n';
      }
    }
 

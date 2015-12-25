@@ -66,9 +66,9 @@ void Worker::BaseUpdate(SampleSet& train_set, SampleSet& test_set, const AdmmCon
   ftrl_processor.squared_sum_ = nt_vec_;
   ftrl_processor.mid_weight_ = zt_vec_; 
 
-  std::string train_name = admm_params.train_path + psid_ + "_aggregated/part-00000"; 
+  std::string train_name = admm_params.train_path + "/" + psid_ + "_aggregated/part-00000"; 
 
-  rabit::TrackerPrintf("base ftrl\n");
+  //rabit::TrackerPrintf("base ftrl\n");
   for (int i = 0; i < 1; ++i) { 
     for (int part = 0; part < num_part_; ++part) {
       CHECK(train_set.Initialize(train_name, part, num_part_));

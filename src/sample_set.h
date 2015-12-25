@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <dmlc/data.h>
+#include <rabit.h>
 
 namespace admm {
 

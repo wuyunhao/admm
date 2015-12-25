@@ -32,9 +32,9 @@ void ArgParser::ADMMParse(const char* file, AdmmConfig& admm_params) {
   }
   in.close();
 
-  admm_params.train_path = dict["train_path"];
-  admm_params.test_path = dict["test_path"];
-  admm_params.output_path = dict["output_path"];
+  //admm_params.train_path = dict["train_path"];
+  //admm_params.test_path = dict["test_path"];
+  //admm_params.output_path = dict["output_path"];
 
   admm_params.step_size = atof(dict["step_size"].c_str());
   admm_params.bias_var = atof(dict["bias_var"].c_str());

@@ -1,3 +1,3 @@
 #!/bin/bash
 
-cp $1 /data2/data
+cp -r $1 /data2/data
