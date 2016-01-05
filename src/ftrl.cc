@@ -103,7 +103,6 @@ void FtrlSolver::Run(FtrlSolver::SampleSet& train_set,
                      const std::vector<FtrlSolver::real_t>& offset,
                      const std::vector<FtrlSolver::real_t>& reg_offset) {
 
-  int count = 0;
   train_set.Rewind();
   while(train_set.Next()) {
     Row y = train_set.GetData();

@@ -28,6 +28,8 @@ int main(int argc, char* argv[]) {
       auto *local_stream = dmlc::Stream::Create(&local_load[0], "r", true);
       if (local_stream) {
         local_model.Load(local_stream);
+      } else {
+        rabit::TrackerPrintf("Fail load file %s\n", local_load.c_str());
       }
       delete local_stream;
 
@@ -36,6 +38,8 @@ int main(int argc, char* argv[]) {
       auto *global_stream = dmlc::Stream::Create(&global_load[0], "r", true);
       if (global_stream) {
         global_model.Load(global_stream);
+      } else {
+        rabit::TrackerPrintf("Fail load file %s\n", global_load.c_str());
       }
       delete global_stream;
     }

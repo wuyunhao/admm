@@ -71,23 +71,16 @@ void SampleSet::Rewind() {
   ::dmlc::Row<IndexType> new_x;
   new_x.label = x.label;
   new_x.weight = x.weight;
-  new_x.length = 1;
-  for (size_t i = 0; i < x.length; ++i) {
-    if (x.index[i] != 0)
-      (new_x.length)++;
-  }
+  new_x.length = 1 + x.length;
+
   IndexType* new_x_index = new IndexType[new_x.length];
   float* new_x_value = new float[new_x.length];
   
   new_x_index[0] = 0;
   new_x_value[0] = 1;
-  int j = 1;
   for (size_t i = 0; i < x.length; ++i) {
-    if (x.index[i] != 0) {
-      new_x_index[j] = x.index[i];
-      new_x_value[j] = x.value[i];
-      j++;
-    }
+    new_x_index[i+1] = x.index[i] + 1;
+    new_x_value[i+1] = x.value[i];
   }
   new_x.index = new_x_index;
   new_x.value = new_x_value;
